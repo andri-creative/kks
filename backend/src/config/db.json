@@ -1,0 +1,11 @@
+{
+    "db": {
+        "host": "localhost",
+        "user": "root",
+        "password": "",
+        "database": "kkpp",
+        "port": 3306
+    },
+    "port": 37900,
+    "path": "v1/api"
+}

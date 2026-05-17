@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  /* Variabel Asli */
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  /* Palet Warna Baru Anda */
+  --color-bg: #F0F0F0;
+  --color-bg2: #e3f1f4;
+  --color-dask: #0096c7;
+  --color-primary: #4F709C;
+  --color-button: #0766AD;
+  --color-secondary: #19A7CE;
+  --color-dark: #212A3E;
+  --color-success: #12CC94;
+  --color-danger: #FA6781;  
+  --color-text-green: #03045e;
+}
+
+@theme {
+  --color-bg: var(--color-bg);
+  --color-bg2: var(--color-bg2);
+  --color-dask: var(--color-dask);
+  --color-text-green: var(--color-text-green);
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-dark: var(--color-dark);
+  --color-success: var(--color-success);
+  --color-danger: var(--color-danger);
+  --color-button: var(--color-button);
+  
+  --color-accent: var(--accent);
+  --color-text-main: var(--text);
+  --color-text-header: var(--text-h);
+  
+  --animate-spin-slow: spin 8s linear infinite;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-dark);
+  font-family: 'Inter', system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+

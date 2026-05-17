@@ -1,0 +1,73 @@
+@http = http://localhost:37900
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZXMiOiJTaXN3YSIsImlhdCI6MTc3OTAzMzQ0NiwiZXhwIjoxNzc5MTE5ODQ2fQ.ekDW5F28b4SMPcoHIKgsGkMW0NXs3C11ZEyVSln6XKY
+
+###
+GET {{http}}
+Content-Type: application/json
+
+
+###
+POST {{http}}/v1/api/auth/login
+Content-Type: application/json
+
+{
+    "nisn": "1234567890",
+    "code": "532310"
+}
+
+
+###
+GET {{http}}/v1/api/users
+Content-Type: application/json
+X-Token: {{token}}
+X-Timestamp: {{$timestamp}}
+
+###
+###
+POST {{http}}/v1/api/candidates
+Content-Type: application/json
+X-Token: {{token}}
+X-Timestamp: {{$timestamp}}
+
+{
+    "no": 1,
+    "image": "https://www.shutterstock.com/image-photo/portrait-confidence-businessman-studio-smile-260nw-2762042427.jpg",
+    "name": "Jamet",
+    "kelas": "XI RPL 1",
+    "nisn": "0987654321",
+    "status": "Active",
+    "misi": "<p>&nbsp;</p><ol><li data-section-id=\"o3rioc\" data-start=\"516\" data-end=\"569\">Menjadi perusahaan terpercaya di bidang teknologi</li><li data-section-id=\"8gb2xs\" data-start=\"570\" data-end=\"617\">Memberikan layanan terbaik kepada pelanggan</li><li data-section-id=\"lapdh9\" data-start=\"618\" data-end=\"679\">Mendorong inovasi digital yang bermanfaat bagi masyarakat</li></ol><p>&nbsp;</p>",
+    "visi": "<p>&nbsp;</p><ol><li>Memberikan layanan yang mudah digunakan.</li><li>Menyediakan sistem yang aman dan terpercaya.</li><li>Membantu pengguna dengan pelayanan cepat.</li><li>Terus berinovasi mengikuti perkembangan teknologi.</li></ol><p>&nbsp;</p>"
+}
+
+###
+POST {{http}}/v1/api/users
+Content-Type: application/json
+X-Token: {{token}}
+X-Timestamp: {{$timestamp}}
+
+{
+    "name": "Budi",
+    "nisn": "1234567890",
+    "kelas": "XI RPL 1",
+    "roles": "Siswa",
+    "status": "Active"
+}
+
+
+###
+POST {{http}}/v1/api/votes
+Content-Type: application/json
+X-Token: {{token}}
+X-Timestamp: {{$timestamp}}
+
+{
+    "user_id": 3,
+    "candidate_id": 1
+}
+
+###
+GET {{http}}/v1/api/votes/stats
+Content-Type: application/json
+X-Token: {{token}}
+X-Timestamp: {{$timestamp}}
