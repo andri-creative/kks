@@ -10,7 +10,7 @@ const connectDB = async () => {
         await sequelize.authenticate();
         console.log('✅ MySQL connected successfully via Sequelize!');
 
-        await sequelize.sync();
+        await sequelize.sync({ alter: true });
         console.log('✅ Database synchronized successfully (Tables created/updated)!');
 
         await seedDefaultAdmin();

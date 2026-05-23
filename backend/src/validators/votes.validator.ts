@@ -7,13 +7,21 @@ export const createVoteSchema = z.object({
             message: 'User ID pemilih wajib diisi!'
         })
         .int('User ID harus berupa angka bulat!')
-        .positive('User ID tidak valid!'),
+        .positive('User ID tidak valid!')
+        .optional(),
         
         candidate_id: z.number({
             message: 'ID Kandidat pilihan wajib diisi!'
         })
         .int('ID Kandidat harus berupa angka bulat!')
         .positive('ID Kandidat tidak valid!'),
+
+        time_remaining: z.number({
+            message: 'Sisa waktu sesi wajib diisi!'
+        })
+        .int('Sisa waktu harus berupa angka bulat!')
+        .nonnegative('Sisa waktu tidak boleh negatif!')
+        .optional()
     })
 });
 

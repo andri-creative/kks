@@ -1,5 +1,6 @@
 export interface Candidates {
     id: number;
+    no?: number;
     image: string;
     name: string;
     kelas: string;

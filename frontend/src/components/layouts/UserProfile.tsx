@@ -1,12 +1,16 @@
 import { Transition } from '@headlessui/react'
 import { useState, useRef, useEffect } from "react";
-import { FiUser, FiLogOut, FiEdit, FiSettings } from "react-icons/fi";
+import { FiUser, FiLogOut, FiSettings } from "react-icons/fi";
+import { authService } from "@/services/authService";
+import { authApi } from "@/features/auth/api/authApi";
+import { Link, useNavigate } from "@tanstack/react-router";
 
 export default function UserProfile() {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const navigate = useNavigate();
+    const user = authService.getCurrentUser();
 
-    // Menutup dropdown saat klik di luar
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -17,21 +21,30 @@ export default function UserProfile() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    const handleLogout = async () => {
+        try {
+            await authApi.logout();
+            navigate({ to: "/" });
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
+    };
+
     return (
         <div className="flex items-center gap-2 relative" ref={dropdownRef}>
             <div className="text-right hidden md:block leading-tight select-none">
                 <p className="text-[11px] font-bold text-[#492828]">
-                    Hallooo
+                    {user.name || "Pengguna"}
                 </p>
-                <p className="text-[9px] text-[#492828]/50 font-medium">
-                    Admin
+                <p className="text-[9px] text-[#492828]/50 font-medium capitalize">
+                    {user.role || "Guest"}
                 </p>
             </div>
 
             {/* Avatar Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center focus:outline-none p-0! h-9 w-9 relative group"
+                className="flex items-center focus:outline-none p-0! h-9 w-9 relative group cursor-pointer"
             >
                 {/* Gradient Border Wrapper */}
                 <div
@@ -41,7 +54,7 @@ export default function UserProfile() {
                         className="bg-white w-full h-full rounded-full p-px flex items-center justify-center overflow-hidden"
                     >
                         <img
-                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Andri"
+                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || 'Andri'}`}
                             alt="Avatar"
                             className="w-full h-full object-cover rounded-full"
                         />
@@ -66,17 +79,18 @@ export default function UserProfile() {
                     className="absolute right-0 top-11 w-48 bg-white rounded-xl shadow-xl border border-[#ECECEC] z-50 py-1.5 transform origin-top-right overflow-hidden"
                 >
                     <div className="px-3 py-2 border-b border-[#ECECEC] mb-1 bg-[#ECECEC]/20">
-                        <p className="text-[12px] font-bold text-[#492828]">
-                            Hallooo
+                        <p className="text-[12px] font-bold text-[#492828] truncate">
+                            {user.name || "Pengguna"}
                         </p>
                         <p className="text-[10px] text-[#492828]/50 truncate">
-                            Admin@mail.com
+                            {user.username ? `@${user.username}` : "Not logged in"}
                         </p>
                     </div>
 
                     <div className="px-1.5 space-y-0.5">
-                        <a
-                            href="#"
+                        <Link
+                            to="/profile"
+                            onClick={() => setIsOpen(false)}
                             className="flex items-center gap-2.5 px-2 py-1.5 text-[13px] text-[#492828]/80 rounded-lg hover:bg-[#656D3F]/10 hover:text-[#656D3F] transition-all group/item"
                         >
                             <div
@@ -85,10 +99,11 @@ export default function UserProfile() {
                                 <FiUser className="w-4 h-4 text-[#656D3F]" />
                             </div>
                             <span className="font-medium">Profile</span>
-                        </a>
+                        </Link>
 
-                        <a
-                            href="#"
+                        <Link
+                            to="/settings"
+                            onClick={() => setIsOpen(false)}
                             className="flex items-center gap-2.5 px-2 py-1.5 text-[13px] text-[#492828]/80 rounded-lg hover:bg-[#656D3F]/10 hover:text-[#656D3F] transition-all group/item"
                         >
                             <div
@@ -97,7 +112,7 @@ export default function UserProfile() {
                                 <FiSettings className="w-4 h-4 text-[#656D3F]" />
                             </div>
                             <span className="font-medium">Settings</span>
-                        </a>
+                        </Link>
                     </div>
 
                     <div className="my-1.5 border-t border-[#ECECEC] mx-2"></div>
@@ -105,7 +120,8 @@ export default function UserProfile() {
                     <div className="px-1.5">
                         <button
                             type="button"
-                            className="w-full flex items-center gap-2.5 px-2 py-1.5 text-[13px] text-red-500 rounded-lg hover:bg-red-50 transition-all group/item"
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-2.5 px-2 py-1.5 text-[13px] text-red-500 rounded-lg hover:bg-red-50 transition-all group/item cursor-pointer"
                         >
                             <div
                                 className="w-7 h-7 rounded-md bg-red-50 flex items-center justify-center group-hover/item:bg-white transition-colors"
@@ -120,3 +136,4 @@ export default function UserProfile() {
         </div>
     );
 }
+

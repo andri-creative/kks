@@ -16,7 +16,7 @@ export const LoginForm = () => {
             return;
         }
 
-        await loginApi(username, Number(code));
+        await loginApi(username, code);
     }
 
     return (

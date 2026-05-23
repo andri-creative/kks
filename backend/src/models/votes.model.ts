@@ -7,18 +7,20 @@ export interface VotesAttributes {
     id: number;
     user_id: number;
     candidate_id: number;
+    time_remaining: number; // Sisa waktu dalam detik saat mencoblos
     created_at?: Date;
     updated_at?: Date;
 }
 
 // 2. Tentukan atribut yang bersifat opsional saat membuat data baru
-export interface VotesCreationAttributes extends Optional<VotesAttributes, 'id' | 'created_at' | 'updated_at'> { }
+export interface VotesCreationAttributes extends Optional<VotesAttributes, 'id' | 'time_remaining' | 'created_at' | 'updated_at'> { }
 
 // 3. Buat Class Model Sequelize
 export class Votes extends Model<VotesAttributes, VotesCreationAttributes> implements VotesAttributes {
     public id!: number;
     public user_id!: number;
     public candidate_id!: number;
+    public time_remaining!: number;
 
     // Timestamps otomatis
     public readonly created_at!: Date;
@@ -40,6 +42,11 @@ Votes.init(
         candidate_id: {
             type: DataTypes.INTEGER,
             allowNull: false
+        },
+        time_remaining: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
         }
     },
     {

@@ -28,7 +28,8 @@ export const UserTable = ({ users, selectedIds, isAllSelected, onToggleSelect, o
                         <th className="py-3 px-4 font-semibold border-b border-text-green/30">NISN</th>
                         <th className="py-3 px-4 font-semibold border-b border-text-green/30">Code</th>
                         <th className="py-3 px-4 font-semibold border-b border-text-green/30">Kelas</th>
-                        <th className="py-3 px-4 font-semibold border-b border-text-green/30">Status</th>
+                        <th className="py-3 px-4 font-semibold border-b border-text-green/30">Status Akun</th>
+                        <th className="py-3 px-4 font-semibold border-b border-text-green/30">Status Memilih</th>
                         <th className="py-3 px-4 font-semibold border-b border-text-green/30 text-right">Aksi</th>
                     </tr>
                 </thead>
@@ -62,12 +63,39 @@ export const UserTable = ({ users, selectedIds, isAllSelected, onToggleSelect, o
                             </td>
                             <td className="py-2.5 px-4 border-y border-gray-50 group-hover:border-primary/20">
                                 <div className="flex items-center gap-1.5">
-                                    <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'active' ? 'bg-success' : 'bg-danger'}`}></div>
-                                    <span className={`text-[11px] font-bold uppercase ${user.status === 'active' ? 'text-success' : 'text-danger'
+                                    <div className={`w-1.5 h-1.5 rounded-full ${user.status?.toLowerCase() === 'active' ? 'bg-success' : 'bg-danger'}`}></div>
+                                    <span className={`text-[11px] font-bold uppercase ${user.status?.toLowerCase() === 'active' ? 'text-success' : 'text-danger'
                                         }`}>
                                         {user.status}
                                     </span>
                                 </div>
+                            </td>
+                            <td className="py-2.5 px-4 border-y border-gray-50 group-hover:border-primary/20">
+                                {(() => {
+                                    const vs = user.voting_status || 'belum_memilih';
+                                    let badgeColor = "bg-amber-50 text-amber-700 border-amber-200";
+                                    let label = "Belum Memilih";
+                                    let dotColor = "bg-amber-500";
+                                    
+                                    if (vs === 'sudah_memilih') {
+                                        badgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                                        label = "Sudah Memilih";
+                                        dotColor = "bg-emerald-500";
+                                    } else if (vs === 'waktu_habis') {
+                                        badgeColor = "bg-rose-50 text-rose-700 border-rose-200";
+                                        label = "Waktu Habis";
+                                        dotColor = "bg-rose-500";
+                                    }
+                                    
+                                    return (
+                                        <div className="flex items-center gap-1.5">
+                                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${badgeColor}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`}></span>
+                                                {label}
+                                            </span>
+                                        </div>
+                                    );
+                                })()}
                             </td>
                             <td className="py-2.5 px-4 rounded-r-2xl border-y border-r border-gray-50 group-hover:border-primary/20 text-right">
                                 <button className="p-2 hover:bg-white rounded-lg transition-colors text-gray-400 hover:text-primary">

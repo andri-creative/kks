@@ -10,12 +10,13 @@ export interface UserAttributes {
     code?: string | null;
     status: 'Active' | 'Inactive';
     roles: 'Admin' | 'Siswa';
+    voting_status: 'belum_memilih' | 'sudah_memilih' | 'waktu_habis';
     created_at?: Date;
     updated_at?: Date;
 }
 
 // 2. Tentukan atribut yang bersifat opsional saat membuat data baru (seperti ID, status default, dll)
-export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'status' | 'roles' | 'created_at' | 'updated_at'> { }
+export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'status' | 'roles' | 'voting_status' | 'created_at' | 'updated_at'> { }
 
 // 3. Buat Class Model Sequelize
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -26,6 +27,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     public code!: string | null;
     public status!: 'Active' | 'Inactive';
     public roles!: 'Admin' | 'Siswa';
+    public voting_status!: 'belum_memilih' | 'sudah_memilih' | 'waktu_habis';
 
     // Timestamps otomatis
     public readonly created_at!: Date;
@@ -66,6 +68,11 @@ User.init(
         roles: {
             type: DataTypes.ENUM('Admin', 'Siswa'),
             defaultValue: 'Siswa',
+            allowNull: false
+        },
+        voting_status: {
+            type: DataTypes.ENUM('belum_memilih', 'sudah_memilih', 'waktu_habis'),
+            defaultValue: 'belum_memilih',
             allowNull: false
         }
     },

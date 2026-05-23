@@ -3,23 +3,24 @@ import type { SchoolSettings } from '../types';
 const SETTINGS_KEY = 'school_settings_data';
 
 const defaultSettings: SchoolSettings = {
-    schoolName: "SMK Negeri 1 Jakarta",
-    schoolAcronym: "SMKN 1 JKT",
+    schoolName: "",
+    schoolAcronym: "",
     schoolLogo: "",
-    npsn: "20103284",
-    address: "Jl. Budi Utomo No.7, Jakarta Pusat, DKI Jakarta",
-    phone: "(021) 3813635",
-    email: "info@smkn1jakarta.sch.id",
-    headmasterName: "Drs. H. Mulyanto, M.Pd",
-    headmasterNip: "196805121993031005",
+    npsn: "",
+    address: "",
+    phone: "",
+    email: "",
+    headmasterName: "",
+    headmasterNip: "",
     signatureImage: "",
     stampImage: "",
     cardThemeColor: "#059669",
-    academicYear: "2026/2027",
-    organizationName: "OSIS",
+    academicYear: "",
+    organizationName: "",
     organizationLogo: "",
-    electionStatus: "ongoing",
-    authMethod: "nisn_pin"
+    electionStatus: "not_started",
+    authMethod: "nisn",
+    timerDuration: 300
 };
 
 export const settingsService = {

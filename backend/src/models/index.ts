@@ -1,6 +1,7 @@
 import { User } from './user.model';
 import { Candidates } from './candidates.model';
 import { Votes } from './votes.model';
+import { SchoolSettings } from './schoolSettings.model';
 
 // ==========================================
 // 🛠️ DEFINISI RELASI / ASOSIASI SEQUELIZE
@@ -29,4 +30,4 @@ Votes.belongsTo(Candidates, {
 // ==========================================
 // 📦 EKSPOR SEMUA MODEL TERPUSAT
 // ==========================================
-export { User, Candidates, Votes };
+export { User, Candidates, Votes, SchoolSettings };

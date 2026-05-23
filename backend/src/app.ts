@@ -5,9 +5,9 @@ import dbConfig from './config/db.json';
 
 const app: Express = express();
 app.use(cors({
-    origin: '*', // Untuk development, ganti dengan domain spesifik di production
+    origin: 'http://localhost:5173',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-timestamp', 'x-token', 'x-client-id', 'X-Timestamp', 'X-Token'],
     credentials: true
 }));
 

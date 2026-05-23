@@ -1,6 +1,6 @@
 import React from 'react';
 import type { SchoolSettings } from '../types';
-import { FiPlay, FiStopCircle, FiInfo } from 'react-icons/fi';
+import { FiPlay, FiStopCircle, FiInfo, FiClock } from 'react-icons/fi';
 
 interface ElectionRulesTabProps {
     settings: SchoolSettings;
@@ -8,6 +8,12 @@ interface ElectionRulesTabProps {
 }
 
 export const ElectionRulesTab: React.FC<ElectionRulesTabProps> = ({ settings, onChange }) => {
+    const presets = [60, 120, 180, 300];
+    const [isCustomMode, setIsCustomMode] = React.useState(() => {
+        const currentDuration = settings.timerDuration || 300;
+        return !presets.includes(currentDuration);
+    });
+
     return (
         <div className="space-y-5 text-left">
             <h2 className="text-xs font-black text-text-green uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
@@ -101,6 +107,133 @@ export const ElectionRulesTab: React.FC<ElectionRulesTabProps> = ({ settings, on
                         </span>
                     </button>
                 </div>
+            </div>
+
+            {/* Countdown Session Timer Configuration */}
+            <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Batas Waktu Sesi Bilik Suara (Siswa)</label>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-3">
+                    {/* 1 Menit */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsCustomMode(false);
+                            onChange({ timerDuration: 60 });
+                        }}
+                        className={`flex flex-col items-center justify-center p-3.5 rounded-xl border text-center transition-all cursor-pointer ${
+                            !isCustomMode && settings.timerDuration === 60
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs'
+                                : 'bg-white border-gray-150 text-gray-500 hover:bg-slate-50'
+                        }`}
+                    >
+                        <span className="text-xs font-black uppercase tracking-wider">1 Menit</span>
+                        <span className="text-[8px] text-gray-400 font-bold mt-0.5">(60 Detik)</span>
+                    </button>
+
+                    {/* 2 Menit */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsCustomMode(false);
+                            onChange({ timerDuration: 120 });
+                        }}
+                        className={`flex flex-col items-center justify-center p-3.5 rounded-xl border text-center transition-all cursor-pointer ${
+                            !isCustomMode && settings.timerDuration === 120
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs'
+                                : 'bg-white border-gray-150 text-gray-500 hover:bg-slate-50'
+                        }`}
+                    >
+                        <span className="text-xs font-black uppercase tracking-wider">2 Menit</span>
+                        <span className="text-[8px] text-gray-400 font-bold mt-0.5">(120 Detik)</span>
+                    </button>
+
+                    {/* 3 Menit */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsCustomMode(false);
+                            onChange({ timerDuration: 180 });
+                        }}
+                        className={`flex flex-col items-center justify-center p-3.5 rounded-xl border text-center transition-all cursor-pointer ${
+                            !isCustomMode && settings.timerDuration === 180
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs'
+                                : 'bg-white border-gray-150 text-gray-500 hover:bg-slate-50'
+                        }`}
+                    >
+                        <span className="text-xs font-black uppercase tracking-wider">3 Menit</span>
+                        <span className="text-[8px] text-gray-400 font-bold mt-0.5">(180 Detik)</span>
+                    </button>
+
+                    {/* 5 Menit (Default) */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsCustomMode(false);
+                            onChange({ timerDuration: 300 });
+                        }}
+                        className={`flex flex-col items-center justify-center p-3.5 rounded-xl border text-center transition-all cursor-pointer ${
+                            !isCustomMode && (settings.timerDuration === 300 || !settings.timerDuration)
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs'
+                                : 'bg-white border-gray-150 text-gray-500 hover:bg-slate-50'
+                        }`}
+                    >
+                        <span className="text-xs font-black uppercase tracking-wider">5 Menit</span>
+                        <span className="text-[8px] text-gray-400 font-bold mt-0.5">(300 Detik - Bawaan)</span>
+                    </button>
+
+                    {/* Custom Option */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsCustomMode(true);
+                            if (!settings.timerDuration) {
+                                onChange({ timerDuration: 300 });
+                            }
+                        }}
+                        className={`flex flex-col items-center justify-center p-3.5 rounded-xl border text-center transition-all cursor-pointer ${
+                            isCustomMode
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs'
+                                : 'bg-white border-gray-150 text-gray-500 hover:bg-slate-50'
+                        }`}
+                    >
+                        <span className="text-xs font-black uppercase tracking-wider inline-flex items-center gap-1">
+                            Kustom...
+                        </span>
+                        <span className="text-[8px] text-gray-400 font-bold mt-0.5">(Atur Sendiri)</span>
+                    </button>
+                </div>
+
+                {/* Custom Time Input Field */}
+                {isCustomMode && (
+                    <div className="bg-slate-50/50 border border-gray-150 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in zoom-in-95 duration-200 mb-3">
+                        <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                                <FiClock className="size-3.5 text-emerald-600" />
+                            </div>
+                            <div>
+                                <span className="block text-[11px] font-black text-gray-700 uppercase tracking-wider">Durasi Kustom Aktif</span>
+                                <span className="block text-[8px] text-gray-400 font-bold uppercase mt-0.5">Sesi diatur dalam menit secara dinamis</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={Math.round((settings.timerDuration || 300) / 60)}
+                                onChange={e => {
+                                    const mins = Math.max(1, parseInt(e.target.value) || 1);
+                                    onChange({ timerDuration: mins * 60 });
+                                }}
+                                className="w-24 text-xs font-bold font-mono px-3 py-2 rounded-lg border border-gray-250 bg-white text-gray-700 focus:outline-none focus:border-text-green text-center"
+                            />
+                            <span className="text-xs font-bold text-gray-500">Menit</span>
+                            <span className="text-[10px] text-gray-400 font-bold font-mono ml-2">
+                                ({settings.timerDuration || 300} Detik)
+                            </span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Authentication Method */}

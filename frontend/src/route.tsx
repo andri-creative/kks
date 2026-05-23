@@ -1,4 +1,4 @@
-import { createRootRoute, createRoute, createRouter, Outlet, ScrollRestoration } from '@tanstack/react-router'
+import { createRootRoute, createRoute, createRouter, Outlet, ScrollRestoration, redirect } from '@tanstack/react-router'
 import Login from './pages/Login'
 import AdminLayout from './layouts/admin/MainLayout'
 import ClientLayout from './layouts/client/ClientLayout'
@@ -11,6 +11,8 @@ import AdminProfile from './pages/admin/Profile'
 import ClientHome from './pages/client/Home'
 import AdminSettings from './pages/admin/Settings'
 import AdminVotes from './pages/admin/Votes'
+import AdminVotesLaporan from './pages/admin/VotesLaporan'
+import { authService } from './services/authService'
 
 // 1. Root Route - Wrapper utama aplikasi
 const rootRoute = createRootRoute({
@@ -22,7 +24,7 @@ const rootRoute = createRootRoute({
   ),
   notFoundComponent: () => (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
-      <div className="text-center"> 
+      <div className="text-center">
         <h1 className="text-4xl font-bold mb-4">404</h1>
         <p className="text-slate-400">Halaman tidak ditemukan!</p>
       </div>
@@ -30,11 +32,21 @@ const rootRoute = createRootRoute({
   )
 })
 
-// 2. Login Route (Tanpa Layout)
-const loginRoute = createRoute({
+// 2. Index Route (Halaman Utama / Form Login di /)
+const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/login',
+  path: '/',
   component: Login,
+  beforeLoad: () => {
+    const user = authService.getCurrentUser();
+    if (user.role) {
+      if (user.role.toLowerCase() === 'admin') {
+        throw redirect({ to: '/dashboard' });
+      } else if (user.role.toLowerCase() === 'siswa') {
+        throw redirect({ to: '/client' });
+      }
+    }
+  }
 })
 
 // 3. Admin Layout & Routes (Pathless Layout)
@@ -42,6 +54,12 @@ const adminLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'admin-layout',
   component: AdminLayout,
+  beforeLoad: () => {
+    const user = authService.getCurrentUser();
+    if (!user.role || user.role.toLowerCase() !== 'admin') {
+      throw redirect({ to: '/' });
+    }
+  }
 })
 
 const adminDashboardRoute = createRoute({
@@ -66,6 +84,12 @@ const adminVotesRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: '/votes',
   component: AdminVotes,
+})
+
+const adminVotesLaporanRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/votes/laporan',
+  component: AdminVotesLaporan,
 })
 
 const adminCetakRoute = createRoute({
@@ -97,6 +121,12 @@ const clientLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/client',
   component: ClientLayout,
+  beforeLoad: () => {
+    const user = authService.getCurrentUser();
+    if (!user.role || user.role.toLowerCase() !== 'siswa') {
+      throw redirect({ to: '/' });
+    }
+  }
 })
 
 const clientHomeRoute = createRoute({
@@ -105,17 +135,9 @@ const clientHomeRoute = createRoute({
   component: ClientHome,
 })
 
-// 5. Index Route (Halaman Utama / langsung ke Login)
-const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/',
-  component: Login,
-})
-
-// 6. Satukan semua Route
+// 5. Satukan semua Route
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  loginRoute,
   adminLayoutRoute.addChildren([
     adminDashboardRoute,
     adminUsersRoute,
@@ -124,14 +146,15 @@ const routeTree = rootRoute.addChildren([
     adminCandidateFormRoute,
     adminProfileRoute,
     adminSettingsRoute,
-    adminVotesRoute
+    adminVotesRoute,
+    adminVotesLaporanRoute
   ]),
   clientLayoutRoute.addChildren([clientHomeRoute]),
 ])
 
 
 // 7. Export Router
-export const router = createRouter({ 
+export const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
 })

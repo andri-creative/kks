@@ -61,7 +61,7 @@ export default function AdminCandidateForm() {
         }
     }, [candidateId, isEditMode, candidateList]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         const formData = {
@@ -74,13 +74,17 @@ export default function AdminCandidateForm() {
             misi: misi || '<p>-</p>',
         };
 
-        if (isEditMode) {
-            updateCandidate(Number(candidateId), formData);
-        } else {
-            addCandidate(formData);
+        try {
+            if (isEditMode) {
+                await updateCandidate(Number(candidateId), formData);
+            } else {
+                await addCandidate(formData);
+            }
+            router.navigate({ to: '/candidate' });
+        } catch (error: any) {
+            console.error('Failed to submit candidate data:', error);
+            alert(error.message || 'Terjadi kesalahan saat menyimpan data kandidat.');
         }
-
-        router.navigate({ to: '/candidate' });
     };
 
     // Live preview candidate object mapping

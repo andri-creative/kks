@@ -1,25 +1,33 @@
-import { useState, useEffect, useMemo } from 'react';
-import { fetchUsers } from '../api/userApi';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { fetchUsers, createUser, deleteUser } from '../api/userApi';
 
 export const useUsers = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [sortBy, setSortBy] = useState("name");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; // Jumlah data per halaman
 
-    useEffect(() => {
-        let isMounted = true;
-        fetchUsers().then((data) => {
-            if (isMounted) {
-                setUsers(data);
-                setIsLoading(false);
-            }
-        });
-        return () => { isMounted = false; };
+    const loadUsers = useCallback(async () => {
+        setIsLoading(true);
+        setError("");
+        try {
+            const data = await fetchUsers();
+            setUsers(data);
+        } catch (err: any) {
+            console.error('Failed to load users:', err);
+            setError(err.message || 'Gagal mengambil data user.');
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        loadUsers();
+    }, [loadUsers]);
 
     // Reset ke halaman 1 jika mencari sesuatu
     useEffect(() => {
@@ -41,7 +49,11 @@ export const useUsers = () => {
         result.sort((a, b) => {
             let comparison = 0;
             if (sortBy === "name") comparison = a.name.localeCompare(b.name);
-            if (sortBy === "nisn") comparison = a.nisn.localeCompare(b.nisn);
+            if (sortBy === "nisn") {
+                const aNisn = a.nisn || "";
+                const bNisn = b.nisn || "";
+                comparison = aNisn.localeCompare(bNisn);
+            }
             return sortOrder === "asc" ? comparison : -comparison;
         });
 
@@ -53,7 +65,7 @@ export const useUsers = () => {
         const groups: Record<string, any[]> = { 'Semua': filteredUsers };
         filteredUsers.forEach(user => {
             if (user.kelas) {
-                const level = user.kelas.split(' ')[0];
+                const level = user.kelas.trim().split(' ')[0] || "Lainnya";
                 if (!groups[level]) groups[level] = [];
                 groups[level].push(user);
             }
@@ -81,10 +93,37 @@ export const useUsers = () => {
         setCurrentPage(1);
     };
 
+    const addUser = async (userData: { name: string; nisn: string; kelas: string }) => {
+        setIsLoading(true);
+        try {
+            await createUser(userData);
+            await loadUsers();
+        } catch (err: any) {
+            console.error('Failed to add user:', err);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const removeUser = async (id: number) => {
+        setIsLoading(true);
+        try {
+            await deleteUser(id);
+            await loadUsers();
+        } catch (err: any) {
+            console.error('Failed to remove user:', err);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return { 
         usersByClass: paginatedUsersByClass, // Ini data yang sudah dipotong
         totalItemsByClass: rawUsersByClass, // Ini data asli untuk hitung pagination
         isLoading, 
+        error,
         searchQuery, 
         setSearchQuery,
         sortBy,
@@ -94,6 +133,9 @@ export const useUsers = () => {
         currentPage,
         setCurrentPage,
         itemsPerPage,
-        clearFilters
+        clearFilters,
+        addUser,
+        removeUser,
+        refresh: loadUsers
     };
 };

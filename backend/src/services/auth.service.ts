@@ -18,6 +18,16 @@ export class AuthService {
             throw new Error('Akun Anda dinonaktifkan! Silakan hubungi admin.');
         }
 
+        // Enforce voting status checks for Siswa role
+        if (user.roles === 'Siswa') {
+            if (user.voting_status === 'sudah_memilih') {
+                throw new Error('Akses ditolak! Anda sudah menyalurkan hak pilih Anda.');
+            }
+            if (user.voting_status === 'waktu_habis') {
+                throw new Error('Akses ditolak! Batas waktu sesi memilih Anda (5 menit) telah habis.');
+            }
+        }
+
         // Generate JWT Token
         const token = generateToken({
             id: user.id,

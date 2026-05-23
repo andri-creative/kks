@@ -11,8 +11,13 @@ export interface CandidateCardProps {
     onDelete?: (id: number) => void;
 }
 
-export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, index, onDelete }) => {
+export const CandidateCard: React.FC<CandidateCardProps> = ({
+    candidate,
+    index,
+    onDelete
+}) => {
     const [activeTab, setActiveTab] = useState<'visi' | 'misi'>('visi');
+    const formattedNo = String(index + 1).padStart(2, '0');
 
     return (
         <div className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl border border-gray-100 transition-all duration-300 flex flex-row group hover:-translate-y-1">
@@ -40,7 +45,7 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, index, 
 
                 {/* Candidate Number Badge (Floating Top Left) */}
                 <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-xs text-text-green text-[8px] font-black px-2 py-1 rounded shadow-xs border border-gray-100 uppercase tracking-wider">
-                    #{String(index + 1).padStart(2, '0')}
+                    #{formattedNo}
                 </div>
             </div>
 
@@ -58,7 +63,7 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, index, 
                                     NIS: {candidate.nisn}
                                 </span>
                             </div>
-                            <h2 className="text-sm font-black mt-1 text-text-green tracking-tight truncate" title={candidate.name}>
+                            <h2 className="text-sm font-black mt-1 text-text-green tracking-tight truncate uppercase leading-tight" title={candidate.name}>
                                 {candidate.name}
                             </h2>
                         </div>
@@ -104,6 +109,7 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, index, 
                     {/* Visi & Misi Tab Controls */}
                     <div className="flex bg-gray-100 p-0.5 rounded-lg gap-0.5 mb-2.5">
                         <button
+                            type="button"
                             onClick={() => setActiveTab('visi')}
                             className={`flex-1 text-center py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${activeTab === 'visi'
                                 ? 'bg-white text-text-green shadow-xs'
@@ -113,6 +119,7 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, index, 
                             Visi
                         </button>
                         <button
+                            type="button"
                             onClick={() => setActiveTab('misi')}
                             className={`flex-1 text-center py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${activeTab === 'misi'
                                 ? 'bg-white text-text-green shadow-xs'
@@ -127,9 +134,9 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, index, 
                 {/* HTML content rendering safely */}
                 <div className="flex-1 flex flex-col bg-slate-50/50 p-2 rounded-lg border border-dashed border-gray-200 min-h-[90px] justify-start overflow-hidden">
                     <div
-                        className="text-[10px] text-gray-600 leading-relaxed overflow-y-auto max-h-[105px] pr-1 scrollbar-thin candidate-visi-misi-content [&_ol]:list-decimal [&_ol]:pl-4 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0.5"
+                        className="text-[10px] text-gray-600 leading-relaxed overflow-y-auto max-h-[105px] pr-1 scrollbar-thin candidate-visi-misi-content [&_ol]:list-decimal [&_ol]:pl-4 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0.5 font-medium text-left"
                         dangerouslySetInnerHTML={{
-                            __html: activeTab === 'visi' ? candidate.visi : candidate.misi
+                            __html: activeTab === 'visi' ? (candidate.visi || 'Visi belum dicantumkan.') : (candidate.misi || 'Misi belum dicantumkan.')
                         }}
                     />
                 </div>

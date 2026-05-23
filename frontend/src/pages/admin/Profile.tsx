@@ -1,18 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { authService } from '@/services/authService';
-import { users as defaultUsers } from '@/data/User';
 import type { User } from '@/types/Users';
+import { fetchAdmins, createAdmin, updateAdminApi, deleteUser } from '@/features/users/api/userApi';
+import { AdminModal } from '@/features/users/components/AdminModal';
 import {
     FiUserPlus,
     FiEdit,
     FiTrash2,
     FiShield,
-    FiLock,
-    FiEye,
-    FiEyeOff,
     FiCheckCircle,
     FiAlertCircle,
-    FiX,
+    FiEye,
+    FiEyeOff,
     FiUserCheck
 } from 'react-icons/fi';
 
@@ -23,41 +22,30 @@ export default function Profile() {
     const [admins, setAdmins] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Modal & Form State
+    // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAdmin, setEditingAdmin] = useState<User | null>(null);
-    const [name, setName] = useState('');
-    const [username, setUsername] = useState('');
-    const [code, setCode] = useState('');
-    const [role, setRole] = useState('admin');
 
     // UI Feedback State
     const [showPinMap, setShowPinMap] = useState<Record<string, boolean>>({});
     const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-    const [errorMsg, setErrorMsg] = useState('');
 
-    // Load admins from localStorage or fallback to default data
-    useEffect(() => {
-        const savedAdmins = localStorage.getItem('admins_data');
-        if (savedAdmins) {
-            try {
-                setAdmins(JSON.parse(savedAdmins));
-            } catch (e) {
-                console.error(e);
-                initializeDefaultAdmins();
-            }
-        } else {
-            initializeDefaultAdmins();
+    // Fetch admins from backend API
+    const loadAdminsFromApi = async () => {
+        setLoading(true);
+        try {
+            const data = await fetchAdmins();
+            setAdmins(data);
+        } catch (err: any) {
+            showToast('error', err.message || 'Gagal memuat data admin.');
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-    }, []);
-
-    const initializeDefaultAdmins = () => {
-        // Filter users that have role admin from default users
-        const defaultAdmins = defaultUsers.filter(u => u.role === 'admin');
-        localStorage.setItem('admins_data', JSON.stringify(defaultAdmins));
-        setAdmins(defaultAdmins);
     };
+
+    useEffect(() => {
+        loadAdminsFromApi();
+    }, []);
 
     // Auto-dismiss toast
     useEffect(() => {
@@ -80,54 +68,38 @@ export default function Profile() {
 
     const openCreateModal = () => {
         setEditingAdmin(null);
-        setName('');
-        setUsername('');
-        setCode('');
-        setRole('admin');
-        setErrorMsg('');
         setIsModalOpen(true);
     };
 
     const openEditModal = (admin: User) => {
         setEditingAdmin(admin);
-        setName(admin.name);
-        setUsername(admin.username);
-        setCode(admin.code.toString());
-        setRole(admin.role);
-        setErrorMsg('');
         setIsModalOpen(true);
     };
 
-    const handleDelete = (usernameToDelete: string) => {
+    const handleDelete = async (adminToDelete: User) => {
         // Security check: cannot delete oneself
-        if (usernameToDelete === currentUser.username) {
+        if (adminToDelete.username === currentUser.username) {
             showToast('error', 'Anda tidak dapat menghapus akun Anda sendiri!');
             return;
         }
 
-        if (window.confirm(`Apakah Anda yakin ingin menghapus admin "${usernameToDelete}"?`)) {
-            const updated = admins.filter(a => a.username !== usernameToDelete);
-            localStorage.setItem('admins_data', JSON.stringify(updated));
-            setAdmins(updated);
-            showToast('success', 'Admin berhasil dihapus!');
+        if (window.confirm(`Apakah Anda yakin ingin menghapus admin "${adminToDelete.name}"?`)) {
+            setLoading(true);
+            try {
+                if (adminToDelete.id) {
+                    await deleteUser(adminToDelete.id);
+                    await loadAdminsFromApi();
+                    showToast('success', 'Admin berhasil dihapus!');
+                }
+            } catch (err: any) {
+                showToast('error', err.message || 'Gagal menghapus admin.');
+                setLoading(false);
+            }
         }
     };
 
-    const handleSave = (e: React.FormEvent) => {
-        e.preventDefault();
-        setErrorMsg('');
-
-        // Basic validation
-        if (!name.trim() || !username.trim() || !code.trim()) {
-            setErrorMsg('Semua kolom wajib diisi!');
-            return;
-        }
-
-        const pinNumber = Number(code);
-        if (isNaN(pinNumber)) {
-            setErrorMsg('PIN / Passcode harus berupa angka!');
-            return;
-        }
+    const handleSave = async (adminData: { name: string; username: string; code: string }) => {
+        const { name, username, code } = adminData;
 
         // Validate username uniqueness
         const isDuplicateUsername = admins.some(a =>
@@ -136,23 +108,16 @@ export default function Profile() {
         );
 
         if (isDuplicateUsername) {
-            setErrorMsg('Username sudah digunakan oleh admin lain!');
-            return;
+            throw new Error('Username sudah digunakan oleh admin lain!');
         }
 
-        // Security check: If editing yourself, you MUST NOT change your own role from 'admin'
         const isSelfEditing = editingAdmin && editingAdmin.username === currentUser.username;
-        const targetRole = isSelfEditing ? 'admin' : role;
-
-        let updatedAdmins: User[];
 
         if (editingAdmin) {
             // Edit mode
-            updatedAdmins = admins.map(a =>
-                a.username === editingAdmin.username
-                    ? { name, username, code: pinNumber, role: targetRole }
-                    : a
-            );
+            if (editingAdmin.id) {
+                await updateAdminApi(editingAdmin.id, { name, username, code });
+            }
 
             // If the logged-in admin edited their own name, update the local auth state as well
             if (isSelfEditing) {
@@ -163,22 +128,14 @@ export default function Profile() {
             showToast('success', 'Data admin berhasil diperbarui!');
         } else {
             // Create mode
-            const newAdmin: User = {
-                name,
-                username,
-                code: pinNumber,
-                role: 'admin' // Forced to admin for security
-            };
-            updatedAdmins = [...admins, newAdmin];
+            await createAdmin({ name, username, code });
             showToast('success', 'Admin baru berhasil ditambahkan!');
         }
 
-        localStorage.setItem('admins_data', JSON.stringify(updatedAdmins));
-        setAdmins(updatedAdmins);
-        setIsModalOpen(false);
+        await loadAdminsFromApi();
 
         // Force refresh location so navigation layouts (like header names) are updated instantly
-        if (editingAdmin && editingAdmin.username === currentUser.username) {
+        if (isSelfEditing) {
             window.location.reload();
         }
     };
@@ -197,8 +154,8 @@ export default function Profile() {
             {/* Toast Notification */}
             {toast && (
                 <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border transition-all duration-300 transform translate-y-0 animate-in fade-in slide-in-from-bottom-2 ${toast.type === 'success'
-                        ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
-                        : 'bg-rose-50 border-rose-100 text-rose-800'
+                    ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
+                    : 'bg-rose-50 border-rose-100 text-rose-800'
                     }`}>
                     {toast.type === 'success' ? <FiCheckCircle className="size-4 text-emerald-600" /> : <FiAlertCircle className="size-4 text-rose-600" />}
                     <span className="text-xs font-black tracking-tight">{toast.message}</span>
@@ -310,11 +267,11 @@ export default function Profile() {
                                                     </button>
 
                                                     <button
-                                                        onClick={() => handleDelete(admin.username)}
+                                                        onClick={() => handleDelete(admin)}
                                                         disabled={isSelf}
                                                         className={`p-1.5 rounded-lg border transition-all ${isSelf
-                                                                ? 'border-gray-100 text-gray-300 cursor-not-allowed opacity-50'
-                                                                : 'border-gray-150 text-gray-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 cursor-pointer'
+                                                            ? 'border-gray-100 text-gray-300 cursor-not-allowed opacity-50'
+                                                            : 'border-gray-150 text-gray-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 cursor-pointer'
                                                             }`}
                                                         title={isSelf ? 'Anda tidak dapat menghapus akun Anda sendiri' : 'Hapus Akun Admin'}
                                                     >
@@ -332,129 +289,13 @@ export default function Profile() {
             </div>
 
             {/* Modal Dialog Form */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    {/* Dark Backdrop */}
-                    <div
-                        className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
-                        onClick={() => setIsModalOpen(false)}
-                    />
-
-                    {/* Modal Box */}
-                    <div className="bg-white rounded-xl border border-gray-100 shadow-2xl w-full max-w-md overflow-hidden relative z-10 animate-in fade-in zoom-in-95 duration-200 text-left">
-                        {/* Modal Header */}
-                        <div className="bg-slate-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center">
-                            <h3 className="text-sm font-black text-text-green uppercase tracking-wider flex items-center gap-2">
-                                <FiShield className="size-4 text-emerald-600" />
-                                {editingAdmin ? 'Edit Data Admin' : 'Tambah Admin Baru'}
-                            </h3>
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="text-gray-400 hover:text-gray-600 p-1 transition-colors cursor-pointer"
-                            >
-                                <FiX className="size-4" />
-                            </button>
-                        </div>
-
-                        {/* Modal Form */}
-                        <form onSubmit={handleSave} className="p-6 space-y-4">
-                            {errorMsg && (
-                                <div className="p-3 rounded-lg bg-rose-50 border border-rose-100 text-rose-800 text-[10px] font-bold flex items-center gap-2">
-                                    <FiAlertCircle className="size-4 text-rose-600 shrink-0" />
-                                    <span>{errorMsg}</span>
-                                </div>
-                            )}
-
-                            {/* Info Banner when Self-editing */}
-                            {editingAdmin && editingAdmin.username === currentUser.username && (
-                                <div className="p-3 rounded-lg bg-amber-50 border border-amber-100 text-amber-800 text-[10px] font-bold leading-normal flex items-start gap-2">
-                                    <FiLock className="size-4 text-amber-600 shrink-0 mt-0.5" />
-                                    <span>Anda sedang mengedit akun Anda sendiri. Anda tidak diperkenankan mengubah role atau status keamanan agar tidak terkunci dari panel admin.</span>
-                                </div>
-                            )}
-
-                            {/* Full Name */}
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1.5">Nama Lengkap</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-gray-250 bg-white text-gray-700 focus:outline-none focus:border-text-green focus:ring-1 focus:ring-text-green transition-all"
-                                    placeholder="Contoh: Ahmad Subardjo"
-                                />
-                            </div>
-
-                            {/* Username */}
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1.5">Username</label>
-                                <div className="relative">
-                                    <span className="absolute left-3.5 top-2.5 text-xs font-semibold text-gray-400 font-mono">@</span>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={username}
-                                        onChange={e => setUsername(e.target.value.replace(/\s+/g, '').toLowerCase())}
-                                        className="w-full text-xs pl-8 pr-3.5 py-2.5 rounded-lg border border-gray-250 bg-white text-gray-700 focus:outline-none focus:border-text-green focus:ring-1 focus:ring-text-green transition-all font-mono"
-                                        placeholder="username"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* PIN Code */}
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1.5">PIN / Passcode Keamanan (Angka)</label>
-                                <input
-                                    type="password"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    required
-                                    value={code}
-                                    onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
-                                    className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-gray-250 bg-white text-gray-700 focus:outline-none focus:border-text-green focus:ring-1 focus:ring-text-green transition-all font-mono tracking-widest"
-                                    placeholder="Masukkan PIN Angka (Contoh: 12345)"
-                                    maxLength={8}
-                                />
-                            </div>
-
-                            {/* Role Select Field (Disabled if editing yourself) */}
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1.5">Hak Akses / Role</label>
-                                <select
-                                    disabled={!!editingAdmin && editingAdmin.username === currentUser.username}
-                                    value={role}
-                                    onChange={e => setRole(e.target.value)}
-                                    className={`w-full text-xs px-3 py-2.5 rounded-lg border border-gray-250 bg-white text-gray-700 focus:outline-none focus:border-text-green focus:ring-1 focus:ring-text-green transition-all font-bold ${!!editingAdmin && editingAdmin.username === currentUser.username
-                                            ? 'bg-slate-100 border-gray-200 text-gray-400 cursor-not-allowed'
-                                            : 'cursor-pointer'
-                                        }`}
-                                >
-                                    <option value="admin">ADMINISTRATOR (Full Access)</option>
-                                    {/* Locked down, user role is not allowed here since page is only for admins */}
-                                </select>
-                            </div>
-
-                            {/* Modal Actions */}
-                            <div className="pt-4 border-t border-gray-150 flex items-center justify-end gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-5 py-2.5 text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all cursor-pointer"
-                                >
-                                    Batal
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-6 py-2.5 text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer uppercase tracking-wider"
-                                >
-                                    Simpan Admin
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <AdminModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleSave}
+                editingAdmin={editingAdmin}
+                currentUser={currentUser}
+            />
         </div>
     );
 }

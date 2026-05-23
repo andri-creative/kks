@@ -11,26 +11,30 @@ export const useLogin = () => {
     const [error, setError] = useState("");
     const navigate = useNavigate();
 
-    const handleLogin = async (username: string, code: number) => {
+    const handleLogin = async (username: string, code: string | number) => {
         setIsLoading(true);
         setError("");
-        
+
         try {
             const user = await authApi.login(username, code);
-            
+
             if (user) {
-                if (user.role === "admin") {
+                const userRole = user.role.toLowerCase();
+                if (userRole === "admin") {
                     navigate({ to: "/dashboard" });
-                } else {
+                } else if (userRole === "siswa") {
                     navigate({ to: "/client" });
+                } else {
+                    setError("Akses ditolak: role pengguna tidak dikenali.");
+                    return { success: false };
                 }
                 return { success: true };
             } else {
                 setError("Username atau kode salah.");
                 return { success: false };
             }
-        } catch (err) {
-            setError("Terjadi kesalahan sistem. Silakan coba lagi.");
+        } catch (err: any) {
+            setError(err.message || "Terjadi kesalahan sistem. Silakan coba lagi.");
             return { success: false };
         } finally {
             setIsLoading(false);

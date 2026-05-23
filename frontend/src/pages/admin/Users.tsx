@@ -3,6 +3,7 @@ import { useUsers } from '@/features/users/hooks/useUsers'
 import { UserTable } from '@/features/users/components/UserTable'
 import { UserFilter } from '@/features/users/components/UserFilter'
 import { Pagination } from '@/features/users/components/Pagination'
+import { UserModal } from '@/features/users/components/UserModal'
 import { Link } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 
@@ -24,10 +25,14 @@ export default function AdminUsers() {
         currentPage,
         setCurrentPage,
         itemsPerPage,
-        clearFilters
+        clearFilters,
+        addUser
     } = useUsers();
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState(Object.keys(usersByClass)[0] || '');
+
+    // State untuk mengontrol visibilitas modal
+    const [isAddOpen, setIsAddOpen] = useState(false);
 
     // Sinkronisasi activeTab saat data pertama kali dimuat
     useEffect(() => {
@@ -56,7 +61,10 @@ export default function AdminUsers() {
                             Sistem Database Siswa Aktif
                         </p>
                     </div>
-                    <button className="bg-button hover:bg-button/90 text-white px-6 py-2.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-button/20 flex items-center gap-2 active:scale-95 cursor-pointer">
+                    <button 
+                        onClick={() => setIsAddOpen(true)}
+                        className="bg-button hover:bg-button/90 text-white px-6 py-2.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-button/20 flex items-center gap-2 active:scale-95 cursor-pointer"
+                    >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                         Tambah User Baru
                     </button>
@@ -116,10 +124,10 @@ export default function AdminUsers() {
 
                                             if (classes.length === 0) return 'Pilih Siswa';
                                             if (classes.length === 1) return classes[0];
-                                            
+
                                             const levels = [...new Set(classes.map(c => c.split(' ')[0]))];
                                             if (levels.length === 1) return levels[0];
-                                            
+
                                         })()
                                     }}
                                     onClick={() => {
@@ -200,6 +208,13 @@ export default function AdminUsers() {
                     </Tab.Panels>
                 </div>
             </Tab.Group>
+
+            {/* Modal Dialog Komponen Terpisah untuk Tambah User Baru */}
+            <UserModal 
+                isOpen={isAddOpen} 
+                onClose={() => setIsAddOpen(false)} 
+                onSubmit={addUser} 
+            />
         </div>
     );
 }

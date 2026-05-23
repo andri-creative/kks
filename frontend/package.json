@@ -17,6 +17,7 @@
     "@tiptap/react": "^3.23.4",
     "@tiptap/starter-kit": "^3.23.4",
     "apexcharts": "^5.12.0",
+    "axios": "^1.16.1",
     "react": "^19.2.6",
     "react-apexcharts": "^2.1.0",
     "react-dom": "^19.2.6",

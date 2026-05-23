@@ -4,11 +4,15 @@ import { FiPlus } from 'react-icons/fi';
 import { Link } from '@tanstack/react-router';
 
 export default function AdminCandidate() {
-    const { candidateList, deleteCandidate } = useCandidate();
+    const { candidateList, deleteCandidate, isLoading, error } = useCandidate();
 
-    const handleDeleteClick = (id: number) => {
+    const handleDeleteClick = async (id: number) => {
         if (window.confirm('Apakah Anda yakin ingin menghapus kandidat ini?')) {
-            deleteCandidate(id);
+            try {
+                await deleteCandidate(id);
+            } catch (err: any) {
+                alert(err.message || 'Gagal menghapus kandidat.');
+            }
         }
     };
 
@@ -38,16 +42,36 @@ export default function AdminCandidate() {
 
             {/* Grid Cards Container */}
             <div className="px-6 pt-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
-                    {candidateList.map((candidate, index) => (
-                        <CandidateCard
-                            key={candidate.id}
-                            candidate={candidate}
-                            index={index}
-                            onDelete={handleDeleteClick}
-                        />
-                    ))}
-                </div>
+                {isLoading && candidateList.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <div className="animate-spin rounded-full h-9 w-9 border-t-2 border-b-2 border-text-green"></div>
+                        <p className="text-[11px] text-gray-450 mt-3 font-semibold uppercase tracking-wider animate-pulse">Memuat kandidat...</p>
+                    </div>
+                ) : error ? (
+                    <div className="bg-red-50 border border-red-150 rounded-xl p-5 text-left max-w-2xl mx-auto shadow-sm">
+                        <p className="text-xs text-red-650 font-bold uppercase tracking-wider">Gagal Sinkronisasi API</p>
+                        <p className="text-[11px] text-red-500 mt-1">{error}</p>
+                    </div>
+                ) : candidateList.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-100 p-16 text-center shadow-xs max-w-2xl mx-auto">
+                        <div className="w-12 h-12 bg-slate-50 border border-gray-150 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <FiPlus className="size-5 text-gray-400" />
+                        </div>
+                        <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">Belum ada kandidat terdaftar</p>
+                        <p className="text-[11px] text-gray-400 mt-1 max-w-xs mx-auto">Data API kosong. Silakan tambahkan kandidat ketua OSIS/MPK baru dengan menekan tombol Tambah Kandidat.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+                        {candidateList.map((candidate, index) => (
+                            <CandidateCard
+                                key={candidate.id}
+                                candidate={candidate}
+                                index={index}
+                                onDelete={handleDeleteClick}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -260,8 +260,15 @@ const BusinessCardsPDF: React.FC<PDFDocumentProps> = ({
 // Generate data sample berdasarkan data riil yang ada
 const generateSampleData = (count: number, users: any[], settings: SchoolSettings): BusinessCardData[] => {
     const actualCount = Math.min(count, users.length);
+    
+    // Proxy external image URLs through our backend to bypass CORS
+    let logoUrl = settings.schoolLogo || 'https://placehold.co/100';
+    if (logoUrl.startsWith('http')) {
+        logoUrl = `http://localhost:37900/v1/api/proxy-image?url=${encodeURIComponent(logoUrl)}`;
+    }
+
     return Array(actualCount).fill(null).map((_, index): BusinessCardData => ({
-        image: settings.schoolLogo || 'https://placehold.co/100',
+        image: logoUrl,
         title: `KARTU AKSES PEMILIH ${settings.organizationName.toUpperCase()}`,
         class: `${users[index]?.kelas || ''} | ${settings.schoolAcronym}`,
         name: users[index]?.name || '',
@@ -271,7 +278,7 @@ const generateSampleData = (count: number, users: any[], settings: SchoolSetting
 };
 
 export default function Cetak() {
-    const { settings } = useSettings();
+    const { settings, isLoading } = useSettings();
     const search = useRouterState().location.search as { names?: string; count?: number; kelas?: string };
     const [usersData, setUsersData] = useState<any[]>([]);
 
@@ -346,43 +353,52 @@ export default function Cetak() {
                         >
                             Kembali
                         </Link>
-                        <PDFDownloadLink
-                            document={
-                                <BusinessCardsPDF
-                                    cardsData={cardsData}
-                                    cols={layout.cols}
-                                    rows={layout.rows}
-                                />
-                            }
-                            fileName={`kartu-pemilih-${search.kelas || 'cetak'}.pdf`}
-                        >
-                            {({ loading }: { loading: boolean }) => (
-                                <button className={`flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-primary/20 active:scale-95 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary/90 cursor-pointer'}`}>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                                    </svg>
-                                    {loading ? 'Proses...' : 'Download PDF'}
-                                </button>
-                            )}
-                        </PDFDownloadLink>
+                        {!isLoading && (
+                            <PDFDownloadLink
+                                document={
+                                    <BusinessCardsPDF
+                                        cardsData={cardsData}
+                                        cols={layout.cols}
+                                        rows={layout.rows}
+                                    />
+                                }
+                                fileName={`kartu-pemilih-${search.kelas || 'cetak'}.pdf`}
+                            >
+                                {({ loading }: { loading: boolean }) => (
+                                    <button className={`flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-primary/20 active:scale-95 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary/90 cursor-pointer'}`}>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                        </svg>
+                                        {loading ? 'Proses...' : 'Download PDF'}
+                                    </button>
+                                )}
+                            </PDFDownloadLink>
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* Full Screen PDF Area */}
             <div className="flex-1 relative bg-slate-900">
-                <PDFViewer
-                    width="100%"
-                    height="100%"
-                    className="border-none"
-                    showToolbar={true}
-                >
-                    <BusinessCardsPDF
-                        cardsData={cardsData}
-                        cols={layout.cols}
-                        rows={layout.rows}
-                    />
-                </PDFViewer>
+                {isLoading ? (
+                    <div className="h-full flex flex-col items-center justify-center gap-3 text-slate-400">
+                        <div className="w-10 h-10 border-4 border-slate-600 border-t-emerald-500 rounded-full animate-spin" />
+                        <p className="text-sm font-medium">Memuat data dan logo sekolah...</p>
+                    </div>
+                ) : (
+                    <PDFViewer
+                        width="100%"
+                        height="100%"
+                        className="border-none"
+                        showToolbar={true}
+                    >
+                        <BusinessCardsPDF
+                            cardsData={cardsData}
+                            cols={layout.cols}
+                            rows={layout.rows}
+                        />
+                    </PDFViewer>
+                )}
             </div>
 
             {/* Dark Footer */}

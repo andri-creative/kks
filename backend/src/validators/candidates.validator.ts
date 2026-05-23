@@ -10,9 +10,12 @@ export const createCandidateSchema = z.object({
         .positive('Nomor urut harus bernilai positif (lebih besar dari 0)!'),
         
         image: z.string({
-            message: 'URL Foto kandidat wajib diisi!'
+            message: 'Foto kandidat wajib diisi!'
         })
-        .url('Format URL foto kandidat tidak valid!'),
+        .refine(
+            (val) => val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:image/'),
+            { message: 'Format foto harus berupa URL valid atau base64 terenkode!' }
+        ),
         
         name: z.string({
             message: 'Nama kandidat wajib diisi!'
@@ -48,7 +51,12 @@ export const createCandidateSchema = z.object({
 export const updateCandidateSchema = z.object({
     body: z.object({
         no: z.number().int().positive().optional(),
-        image: z.string().url().optional(),
+        image: z.string()
+            .refine(
+                (val) => val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:image/'),
+                { message: 'Format foto harus berupa URL valid atau base64 terenkode!' }
+            )
+            .optional(),
         name: z.string().min(3).max(100).optional(),
         nisn: z.string().length(10).optional(),
         kelas: z.string().max(50).optional(),

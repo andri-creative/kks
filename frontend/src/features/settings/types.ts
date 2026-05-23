@@ -20,4 +20,5 @@ export interface SchoolSettings {
     organizationLogo: string; // Base64 logo of OSIS/MPK
     electionStatus: 'not_started' | 'ongoing' | 'closed';
     authMethod: 'nisn' | 'nisn_pin';
+    timerDuration?: number; // Sesi countdown timer (dalam detik) untuk logout otomatis
 }

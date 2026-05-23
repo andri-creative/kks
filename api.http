@@ -1,5 +1,5 @@
 @http = http://localhost:37900
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZXMiOiJTaXN3YSIsImlhdCI6MTc3OTAzMzQ0NiwiZXhwIjoxNzc5MTE5ODQ2fQ.ekDW5F28b4SMPcoHIKgsGkMW0NXs3C11ZEyVSln6XKY
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZXMiOiJBZG1pbiIsImlhdCI6MTc3OTUxNzA0NSwiZXhwIjoxNzc5NjAzNDQ1fQ.U4r_Nkdp2O1qmMYWk_h1Jscv5dqhYz67UAFWP4omkUU
 
 ###
 GET {{http}}
@@ -11,8 +11,8 @@ POST {{http}}/v1/api/auth/login
 Content-Type: application/json
 
 {
-    "nisn": "1234567890",
-    "code": "532310"
+    "nisn": "4455871320",
+    "code": "009988"
 }
 
 
@@ -23,6 +23,11 @@ X-Token: {{token}}
 X-Timestamp: {{$timestamp}}
 
 ###
+GET {{http}}/v1/api/candidates
+Content-Type: application/json
+X-Token: {{token}}
+X-Timestamp: {{$timestamp}}
+
 ###
 POST {{http}}/v1/api/candidates
 Content-Type: application/json

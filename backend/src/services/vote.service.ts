@@ -2,7 +2,7 @@ import { Votes, Candidates, User } from '../models';
 
 export class VoteService {
     // 1. Melakukan Voting (Pilih Kandidat)
-    static async castVote(userId: number, candidateId: number) {
+    static async castVote(userId: number, candidateId: number, timeRemaining: number) {
         // Cek apakah kandidat yang dipilih benar-benar ada
         const candidate = await Candidates.findByPk(candidateId);
         if (!candidate) {
@@ -12,26 +12,46 @@ export class VoteService {
             throw new Error('Kandidat pilihan Anda sedang berstatus tidak aktif!');
         }
 
-        // Cek apakah siswa ini sudah pernah melakukan voting sebelumnya
+        // Cek status kepesertaan siswa
+        const user = await User.findByPk(userId);
+        if (!user) {
+            throw new Error('Pemilih tidak ditemukan!');
+        }
+        if (user.voting_status !== 'belum_memilih') {
+            throw new Error('Akses ditolak! Anda sudah memilih atau kesempatan waktu Anda telah habis.');
+        }
+
+        // Cek apakah siswa ini sudah pernah melakukan voting sebelumnya (double-check di tabel votes)
         const existingVote = await Votes.findOne({ where: { user_id: userId } });
         if (existingVote) {
             throw new Error('Akses ditolak! Anda hanya diperbolehkan melakukan voting sebanyak 1 kali.');
         }
 
-        // Simpan suara pemilih
+        // Simpan suara pemilih beserta sisa waktu pencoblosan
         const vote = await Votes.create({
             user_id: userId,
-            candidate_id: candidateId
+            candidate_id: candidateId,
+            time_remaining: timeRemaining
         });
 
-        // 🔒 UPDATE STATUS PEMILIH: Ubah status menjadi 'Inactive' agar tidak bisa login lagi setelah memilih
-        const user = await User.findByPk(userId);
-        if (user) {
-            await user.update({ status: 'Inactive' });
-            console.log(`🔒 Sesi ditutup. Status user '${user.name}' (ID: ${userId}) diubah menjadi Inactive.`);
-        }
+        // 🔒 UPDATE STATUS PARTISIPASI PEMILIH: Ubah status menjadi 'sudah_memilih' agar tidak bisa login lagi setelah memilih
+        await user.update({ voting_status: 'sudah_memilih' });
+        console.log(`🔒 Sesi ditutup. Status voting user '${user.name}' (ID: ${userId}) diubah menjadi sudah_memilih.`);
 
         return vote;
+    }
+
+    // 2. Menutup Sesi Karena Waktu Habis (Auto-Logout)
+    static async expireSession(userId: number) {
+        const user = await User.findByPk(userId);
+        if (!user) {
+            throw new Error('Pemilih tidak ditemukan!');
+        }
+        if (user.roles === 'Siswa') {
+            await user.update({ voting_status: 'waktu_habis' });
+            console.log(`🔒 Sesi Waktu Habis. Status voting user '${user.name}' (ID: ${userId}) diubah menjadi waktu_habis.`);
+        }
+        return { success: true };
     }
 
     // 2. Mengambil Statistik Hasil Voting Real-Time
@@ -79,5 +99,25 @@ export class VoteService {
             },
             candidates: candidatesStats
         };
+    }
+
+    // 3. Mengambil Semua Data Voting (Audit Trail untuk Admin)
+    static async getAllVotes() {
+        const votes = await Votes.findAll({
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'name', 'nisn', 'kelas', 'voting_status']
+                },
+                {
+                    model: Candidates,
+                    as: 'candidate',
+                    attributes: ['id', 'name', 'image', 'kelas', 'no']
+                }
+            ],
+            order: [['created_at', 'DESC']]
+        });
+        return votes;
     }
 }

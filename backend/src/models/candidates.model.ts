@@ -50,7 +50,7 @@ Candidates.init(
             allowNull: false
         },
         image: {
-            type: DataTypes.STRING(255),
+            type: DataTypes.TEXT('long'),
             allowNull: false
         },
         name: {
