@@ -90,5 +90,14 @@ Berikut adalah cuplikan tampilan (*screenshot*) dari aplikasi E-Voting KKS. Sist
 </p>
 </details>
 
+<details>
+<summary><b>4. ⚠️ Catatan Penting (Credits & Aturan Clone)</b></summary>
+<br>
+
+Jika Anda melakukan *clone* (menggandakan) repositori ini, ingin merombak, atau menggunakan sistem ini untuk keperluan instansi Anda: **Biarkan identitas dan *Brand Developer* asli (Andri Dev) tetap ada. Jangan diedit, diganti, ataupun dihapus!**
+
+Hargailah jerih payah pembuat karya (*developer*) dengan tetap membiarkan *credit* pencipta aslinya berada di dalam aplikasi.
+</details>
+
 ---
 *Dikelola dengan arsitektur Production-Grade*
