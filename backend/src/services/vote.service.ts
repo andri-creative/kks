@@ -113,7 +113,7 @@ export class VoteService {
                 {
                     model: Candidates,
                     as: 'candidate',
-                    attributes: ['id', 'name', 'image', 'kelas', 'no']
+                    attributes: ['id', 'name', 'kelas', 'no']
                 }
             ],
             order: [['created_at', 'DESC']]

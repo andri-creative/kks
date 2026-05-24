@@ -1,16 +1,16 @@
+import 'dotenv/config';
 import app from './app';
 import { sequelize } from './config/database';
-import dbConfig from './config/db.json';
 import { seedDefaultAdmin } from './config/seeder';
 
-const PORT = dbConfig.port;
+const PORT = process.env.PORT || 37900;
 
 const connectDB = async () => {
     try {
         await sequelize.authenticate();
         console.log('✅ MySQL connected successfully via Sequelize!');
 
-        await sequelize.sync({ alter: true });
+        await sequelize.sync({ alter: false });
         console.log('✅ Database synchronized successfully (Tables created/updated)!');
 
         await seedDefaultAdmin();

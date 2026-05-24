@@ -258,17 +258,14 @@ const BusinessCardsPDF: React.FC<PDFDocumentProps> = ({
 };
 
 // Generate data sample berdasarkan data riil yang ada
-const generateSampleData = (count: number, users: any[], settings: SchoolSettings): BusinessCardData[] => {
+const generateSampleData = (count: number, users: any[], settings: SchoolSettings, logoBase64: string | null): BusinessCardData[] => {
     const actualCount = Math.min(count, users.length);
     
-    // Proxy external image URLs through our backend to bypass CORS
-    let logoUrl = settings.schoolLogo || 'https://placehold.co/100';
-    if (logoUrl.startsWith('http')) {
-        logoUrl = `http://localhost:37900/v1/api/proxy-image?url=${encodeURIComponent(logoUrl)}`;
-    }
+    // Gunakan base64 yang sudah diprefetch, atau biarkan kosong jika belum siap
+    const finalLogoUrl = logoBase64 || '';
 
     return Array(actualCount).fill(null).map((_, index): BusinessCardData => ({
-        image: logoUrl,
+        image: finalLogoUrl,
         title: `KARTU AKSES PEMILIH ${settings.organizationName.toUpperCase()}`,
         class: `${users[index]?.kelas || ''} | ${settings.schoolAcronym}`,
         name: users[index]?.name || '',
@@ -281,6 +278,35 @@ export default function Cetak() {
     const { settings, isLoading } = useSettings();
     const search = useRouterState().location.search as { names?: string; count?: number; kelas?: string };
     const [usersData, setUsersData] = useState<any[]>([]);
+    const [logoBase64, setLogoBase64] = useState<string | null>(null);
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchLogo = async () => {
+            const logoUrl = settings?.schoolLogo;
+            if (!logoUrl) return;
+            
+            try {
+                if (logoUrl.startsWith('http')) {
+                    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:37900';
+                    const proxyUrl = `${apiUrl}/v1/api/proxy-image?url=${encodeURIComponent(logoUrl)}`;
+                    const response = await fetch(proxyUrl);
+                    const blob = await response.blob();
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        if (isMounted) setLogoBase64(reader.result as string);
+                    };
+                    reader.readAsDataURL(blob);
+                } else if (logoUrl.startsWith('data:image')) {
+                    if (isMounted) setLogoBase64(logoUrl);
+                }
+            } catch (err) {
+                console.error("Failed to preload logo:", err);
+            }
+        };
+        fetchLogo();
+        return () => { isMounted = false; };
+    }, [settings?.schoolLogo]);
 
     useEffect(() => {
         const storedUsers = localStorage.getItem('cetakUsers');
@@ -296,7 +322,7 @@ export default function Cetak() {
 
     const layout = { cols: 3 as 3, rows: 8 };
     const totalCards = layout.cols * layout.rows;
-    const cardsData = generateSampleData(usersData.length, usersData, settings);
+    const cardsData = generateSampleData(usersData.length, usersData, settings, logoBase64);
 
     // Fungsi untuk mendeteksi apakah kelas campuran
     const getKelasLabel = () => {

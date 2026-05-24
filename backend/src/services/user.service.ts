@@ -64,6 +64,54 @@ export class UserService {
         return await User.create(data);
     }
 
+    // 3b. Tambah user massal (Import Excel)
+    static async batchCreate(dataList: CreateUserDTO[]) {
+        if (dataList.length > 100) {
+            throw new Error('Maksimal 100 data pemilih yang dapat diimpor dalam satu waktu.');
+        }
+
+        // Validasi 1: Cek NISN ganda di dalam file Excel itu sendiri
+        const nisnSet = new Set();
+        for (let i = 0; i < dataList.length; i++) {
+            const nisn = dataList[i].nisn;
+            if (nisn) {
+                if (nisnSet.has(nisn)) {
+                    throw new Error(`Data ditolak! Terdapat NISN ganda di dalam file Excel pada baris ke-${i + 1}: ${nisn}. Silakan perbaiki file Excel Anda.`);
+                }
+                nisnSet.add(nisn);
+            }
+        }
+
+        // Validasi 2: Cek NISN ganda dengan data di database
+        const nisnArray = Array.from(nisnSet) as string[];
+        if (nisnArray.length > 0) {
+            const existingUsers = await User.findAll({
+                where: {
+                    nisn: nisnArray
+                }
+            });
+
+            if (existingUsers.length > 0) {
+                const duplicateNisns = existingUsers.map((u: any) => u.nisn).join(', ');
+                throw new Error(`Data ditolak! Terdapat NISN yang sudah terdaftar di database: ${duplicateNisns}.`);
+            }
+        }
+
+        // Jika lolos validasi, lakukan insert
+        const createdUsers = [];
+        const errors = [];
+        for (let i = 0; i < dataList.length; i++) {
+            try {
+                // Gunakan fungsi create yang sudah ada (termasuk generate passcode)
+                const user = await UserService.create(dataList[i]);
+                createdUsers.push(user);
+            } catch (err: any) {
+                errors.push(`Baris ${i + 1} (${dataList[i].name || 'Tanpa Nama'}): ${err.message}`);
+            }
+        }
+        return { createdUsers, errors };
+    }
+
     // 4. Update data user
     static async update(id: number, data: UpdateUserDTO) {
         const user = await User.findByPk(id);

@@ -20,7 +20,33 @@ const defaultSettings: SchoolSettings = {
     organizationLogo: "",
     electionStatus: "not_started",
     authMethod: "nisn",
-    timerDuration: 300
+    timerDuration: 300,
+    uiColors: {}
+};
+
+const applyUiColors = (colors?: Record<string, string>) => {
+    if (!colors) return;
+    Object.entries(colors).forEach(([key, value]) => {
+        if (value) {
+            document.documentElement.style.setProperty(key, value);
+        }
+    });
+};
+
+const applyDocumentHead = (settings: Partial<SchoolSettings>) => {
+    if (settings.schoolName) {
+        document.title = settings.schoolName;
+    }
+    
+    if (settings.schoolLogo) {
+        let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+        }
+        link.href = settings.schoolLogo;
+    }
 };
 
 export const useSettings = () => {
@@ -35,6 +61,8 @@ export const useSettings = () => {
                 const fresh = await fetchSchoolSettings();
                 if (fresh) {
                     setSettingsState(fresh);
+                    applyUiColors(fresh.uiColors);
+                    applyDocumentHead(fresh);
                 }
             } catch (err) {
                 console.error("Failed to load settings from DB:", err);
@@ -52,6 +80,8 @@ export const useSettings = () => {
         
         // Optimistic UI Update: update state instantly
         setSettingsState(newSettings);
+        applyUiColors(newSettings.uiColors);
+        applyDocumentHead(newSettings);
 
         try {
             // Save securely to MySQL backend database
@@ -71,6 +101,8 @@ export const useSettings = () => {
                 const fresh = await fetchSchoolSettings();
                 if (fresh) {
                     setSettingsState(fresh);
+                    applyUiColors(fresh.uiColors);
+                    applyDocumentHead(fresh);
                 }
             } catch (err) {
                 console.error("Failed to sync settings:", err);

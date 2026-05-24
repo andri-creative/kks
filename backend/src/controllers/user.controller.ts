@@ -34,6 +34,28 @@ export class UserController {
         }
     }
 
+    // 3b. Tambah pemilih massal (Batch)
+    static async batchCreate(req: Request, res: Response): Promise<void> {
+        try {
+            const dataList = req.body.users;
+            if (!Array.isArray(dataList) || dataList.length === 0) {
+                errorResponse(res, 'Data pemilih tidak valid atau kosong.', 400);
+                return;
+            }
+            
+            const result = await UserService.batchCreate(dataList);
+            if (result.errors.length > 0 && result.createdUsers.length === 0) {
+                errorResponse(res, 'Semua data gagal diimpor: ' + result.errors.join(', '), 400);
+            } else if (result.errors.length > 0) {
+                successResponse(res, result, `Berhasil mengimpor ${result.createdUsers.length} data. Gagal ${result.errors.length} data.`, 201);
+            } else {
+                successResponse(res, result, `Semua ${result.createdUsers.length} pemilih berhasil diimpor!`, 201);
+            }
+        } catch (error: any) {
+            errorResponse(res, error.message || 'Gagal mengimpor pemilih massal.', 400);
+        }
+    }
+
     // 4. Update data pemilih
     static async update(req: Request, res: Response): Promise<void> {
         try {

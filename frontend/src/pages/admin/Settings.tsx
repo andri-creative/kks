@@ -2,20 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useSettings } from '../../features/settings/hooks/useSettings';
 import { SchoolProfileTab } from '../../features/settings/components/SchoolProfileTab';
 import { ElectionRulesTab } from '../../features/settings/components/ElectionRulesTab';
+import { UiColorTab } from '../../features/settings/components/UiColorTab';
 import {
     FiSave,
     FiSettings,
     FiCheckCircle,
     FiInfo,
     FiBookOpen,
-    FiShield
+    FiShield,
+    FiMonitor
 } from 'react-icons/fi';
 
 export default function Settings() {
     const { settings, isLoading, updateSettings } = useSettings();
 
     // Tab State
-    const [activeTab, setActiveTab] = useState<'profile' | 'election'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'election' | 'colors'>('profile');
 
     // Form fields state (cloned from settings hook for atomic saving)
     const [formData, setFormData] = useState(settings);
@@ -121,6 +123,22 @@ export default function Settings() {
                                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-text-green rounded-full animate-in fade-in duration-300" />
                             )}
                         </button>
+
+                        {/* Tab 3: UI Colors */}
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('colors')}
+                            className={`pb-2 text-xs font-black uppercase tracking-wider outline-none transition-all duration-300 relative cursor-pointer flex items-center gap-2 ${activeTab === 'colors'
+                                ? 'text-text-green'
+                                : 'text-gray-300 hover:text-text-green/60'
+                                }`}
+                        >
+                            <FiMonitor className="size-3.5" />
+                            Tema & UI Colors
+                            {activeTab === 'colors' && (
+                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-text-green rounded-full animate-in fade-in duration-300" />
+                            )}
+                        </button>
                     </div>
 
                     {/* Tab Contents */}
@@ -164,6 +182,13 @@ export default function Settings() {
 
                                 {activeTab === 'election' && (
                                     <ElectionRulesTab
+                                        settings={formData}
+                                        onChange={handleFieldChange}
+                                    />
+                                )}
+
+                                {activeTab === 'colors' && (
+                                    <UiColorTab
                                         settings={formData}
                                         onChange={handleFieldChange}
                                     />

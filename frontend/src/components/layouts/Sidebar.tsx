@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { FiChevronLeft, FiChevronRight, FiLayers } from "react-icons/fi";
 import { menuOptionsAdmin } from "@/config/menu";
+import { useSettings } from "../../features/settings/hooks/useSettings";
 
 interface SidebarProps {
     collapsed: boolean;
@@ -10,6 +11,7 @@ interface SidebarProps {
 export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
     const router = useRouterState();
     const currentPath = router.location.pathname;
+    const { settings } = useSettings();
 
     const isActive = (path: string) => {
         return currentPath === path;
@@ -35,7 +37,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                         className={`font-bold text-text-green text-base whitespace-nowrap ml-3 transition-all duration-500 ease-in-out ${collapsed ? 'opacity-0 -translate-x-4 pointer-events-none' : 'opacity-100 translate-x-0'
                             }`}
                     >
-                        Andri Dev
+                        {settings?.schoolAcronym || 'E-Voting'}
                     </span>
                 </div>
 

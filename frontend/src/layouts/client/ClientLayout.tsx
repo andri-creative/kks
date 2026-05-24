@@ -12,6 +12,7 @@ import { expireVoteSession } from '@/features/candidate/api/candidateApi';
 // CUSTOM HOOKS IMPORTS
 // ==========================================
 import { useSettings } from '@/features/settings/hooks/useSettings';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 // ==========================================
 // ICONS IMPORTS (React Icons)
@@ -26,6 +27,9 @@ import { FiShield, FiLogOut, FiUser, FiClock } from 'react-icons/fi';
  */
 export default function ClientLayout() {
   const navigate = useNavigate();
+  const [confirmConfig, setConfirmConfig] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({
+    isOpen: false, title: "", message: "", onConfirm: () => {}
+  });
   
   // Get active session user info
   const currentUser = authService.getCurrentUser();
@@ -104,14 +108,19 @@ export default function ClientLayout() {
    * Asks for confirmation to prevent accidental session termination.
    */
   const handleLogout = async () => {
-    if (window.confirm("Apakah Anda yakin ingin keluar dari sistem?")) {
-      try {
-        await authApi.logout();
-        navigate({ to: "/" });
-      } catch (error) {
-        console.error("Logout failed:", error);
+    setConfirmConfig({
+      isOpen: true,
+      title: "Keluar dari Sistem",
+      message: "Apakah Anda yakin ingin keluar dari sistem? Waktu voting Anda akan tetap berjalan jika belum selesai.",
+      onConfirm: async () => {
+        try {
+          await authApi.logout();
+          navigate({ to: "/" });
+        } catch (error) {
+          console.error("Logout failed:", error);
+        }
       }
-    }
+    });
   };
 
   // ==========================================
@@ -157,7 +166,7 @@ export default function ClientLayout() {
   // VIEW RENDER
   // ==========================================
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-gray-700 font-sans">
+    <div className="min-h-screen flex flex-col bg-bg2 text-gray-700 font-sans">
       
       {/* Global Client Header Navbar */}
       <header className="h-16 border-b border-gray-150 flex items-center px-6 justify-between sticky top-0 bg-white/95 backdrop-blur-md z-40 relative">
@@ -214,6 +223,15 @@ export default function ClientLayout() {
       <main className="p-6 md:p-10 max-w-[1600px] mx-auto w-full">
         <Outlet />
       </main>
+
+      <ConfirmModal 
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmConfig.onConfirm}
+        isDestructive={false}
+      />
     </div>
   );
 }

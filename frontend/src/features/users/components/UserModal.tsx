@@ -4,13 +4,23 @@ interface UserModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (userData: { name: string; nisn: string; kelas: string }) => Promise<void>;
+    initialData?: { name: string; nisn: string; kelas: string } | null;
 }
 
-export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSubmit }) => {
+export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
     const [name, setName] = useState("");
     const [nisn, setNisn] = useState("");
     const [kelas, setKelas] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
+
+    React.useEffect(() => {
+        if (isOpen) {
+            setName(initialData?.name || "");
+            setNisn(initialData?.nisn || "");
+            setKelas(initialData?.kelas || "");
+        }
+    }, [isOpen, initialData]);
 
     if (!isOpen) return null;
 
@@ -23,9 +33,10 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSubmit 
             setName("");
             setNisn("");
             setKelas("");
+            setErrorMsg("");
             onClose();
         } catch (err: any) {
-            alert(err.message || "Gagal menyimpan data user.");
+            setErrorMsg(err.message || "Gagal menyimpan data user.");
         } finally {
             setIsSubmitting(false);
         }
@@ -38,7 +49,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSubmit 
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
                     <div>
                         <h3 className="text-sm font-black text-text-green uppercase tracking-wider">
-                            Tambah Pemilih Baru
+                            {initialData ? 'Edit Data Pemilih' : 'Tambah Pemilih Baru'}
                         </h3>
                         <p className="text-[10px] text-gray-400 mt-0.5">
                             Silakan isi data nama, NISN, dan kelas pemilih.
@@ -53,9 +64,15 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSubmit 
                 </div>
 
                 {/* Form Body */}
-                <form onSubmit={handleFormSubmit} className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1.5">Nama Lengkap</label>
+        <form onSubmit={handleFormSubmit} className="p-6 space-y-4">
+            {errorMsg && (
+                <div className="p-3 bg-rose-50 text-rose-600 text-[10px] font-bold rounded-lg border border-rose-100 flex items-center gap-2">
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    {errorMsg}
+                </div>
+            )}
+            <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1.5">Nama Lengkap</label>
                         <input
                             type="text"
                             required

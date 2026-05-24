@@ -1,4 +1,5 @@
 import { SchoolSettings } from '../models';
+import cloudinary from '../config/cloudinary';
 
 export class SchoolSettingsService {
     // Convert DB attributes to SchoolSettings camelCase interface
@@ -21,7 +22,8 @@ export class SchoolSettingsService {
             organizationLogo: settings.organization_logo,
             electionStatus: settings.election_status,
             authMethod: settings.auth_method,
-            timerDuration: settings.timer_duration
+            timerDuration: settings.timer_duration,
+            uiColors: settings.ui_colors || null
         };
     }
 
@@ -45,7 +47,8 @@ export class SchoolSettingsService {
             organization_logo: dto.organizationLogo || "",
             election_status: dto.electionStatus || "not_started",
             auth_method: dto.authMethod || "nisn",
-            timer_duration: Number(dto.timerDuration !== undefined ? dto.timerDuration : 300)
+            timer_duration: Number(dto.timerDuration !== undefined ? dto.timerDuration : 300),
+            ui_colors: dto.uiColors || null
         };
     }
 
@@ -71,13 +74,38 @@ export class SchoolSettingsService {
                 organization_logo: "",
                 election_status: "not_started",
                 auth_method: "nisn",
-                timer_duration: 300
+                timer_duration: 300,
+                ui_colors: null
             });
         }
         return this.toDTO(settings);
     }
 
+    private static async uploadBase64IfNeeded(fieldValue: string | undefined): Promise<string | undefined> {
+        if (!fieldValue) return fieldValue;
+        if (fieldValue.startsWith('data:image/')) {
+            try {
+                const timestamp = Date.now().toString();
+                const result = await cloudinary.uploader.upload(fieldValue, {
+                    folder: 'kks_settings',
+                    public_id: timestamp,
+                    format: 'webp'
+                });
+                return result.secure_url;
+            } catch (err) {
+                console.error("Cloudinary upload error:", err);
+                return fieldValue;
+            }
+        }
+        return fieldValue;
+    }
+
     static async updateSettings(data: any) {
+        if (data.schoolLogo) data.schoolLogo = await this.uploadBase64IfNeeded(data.schoolLogo);
+        if (data.organizationLogo) data.organizationLogo = await this.uploadBase64IfNeeded(data.organizationLogo);
+        if (data.signatureImage) data.signatureImage = await this.uploadBase64IfNeeded(data.signatureImage);
+        if (data.stampImage) data.stampImage = await this.uploadBase64IfNeeded(data.stampImage);
+
         let settings = await SchoolSettings.findOne();
         const dbFields = this.toDBFields(data);
         if (!settings) {

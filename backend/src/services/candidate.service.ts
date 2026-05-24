@@ -1,5 +1,6 @@
 import { Candidates } from '../models';
 import { CreateCandidateDTO, UpdateCandidateDTO } from '../validators';
+import cloudinary from '../config/cloudinary';
 
 export class CandidateService {
     static async getAll() {
@@ -17,6 +18,25 @@ export class CandidateService {
         return candidate;
     }
 
+    private static async uploadBase64IfNeeded(fieldValue: string | undefined): Promise<string | undefined> {
+        if (!fieldValue) return fieldValue;
+        if (fieldValue.startsWith('data:image/')) {
+            try {
+                const timestamp = Date.now().toString();
+                const result = await cloudinary.uploader.upload(fieldValue, {
+                    folder: 'kks_candidates',
+                    public_id: timestamp,
+                    format: 'webp'
+                });
+                return result.secure_url;
+            } catch (err) {
+                console.error("Cloudinary upload error:", err);
+                return fieldValue;
+            }
+        }
+        return fieldValue;
+    }
+
     // 3. Tambah kandidat baru
     static async create(data: CreateCandidateDTO) {
         // Cek apakah nomor urut sudah digunakan
@@ -31,7 +51,11 @@ export class CandidateService {
             throw new Error(`Kandidat dengan NISN ${data.nisn} sudah terdaftar!`);
         }
 
-        return await Candidates.create(data);
+        if (data.image) {
+            data.image = await this.uploadBase64IfNeeded(data.image) as any;
+        }
+
+        return await Candidates.create(data as any);
     }
 
     // 4. Update data kandidat
@@ -55,6 +79,10 @@ export class CandidateService {
             if (checkNisn) {
                 throw new Error(`Kandidat dengan NISN ${data.nisn} sudah terdaftar!`);
             }
+        }
+
+        if (data.image) {
+            data.image = await this.uploadBase64IfNeeded(data.image) as any;
         }
 
         await candidate.update(data);

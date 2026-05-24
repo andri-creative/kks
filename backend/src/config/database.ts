@@ -1,13 +1,12 @@
 import { Sequelize } from 'sequelize';
-import dbConfig from './db.json';
 
 export const sequelize = new Sequelize(
-    dbConfig.db.database,
-    dbConfig.db.user,
-    dbConfig.db.password,
+    process.env.DB_NAME as string,
+    process.env.DB_USER as string,
+    process.env.DB_PASSWORD as string,
     {
-        host: dbConfig.db.host,
-        port: dbConfig.db.port,
+        host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT) || 3307,
         dialect: 'mysql',
         logging: false,
         pool: {

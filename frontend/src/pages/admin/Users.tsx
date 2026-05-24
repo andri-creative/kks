@@ -4,8 +4,11 @@ import { UserTable } from '@/features/users/components/UserTable'
 import { UserFilter } from '@/features/users/components/UserFilter'
 import { Pagination } from '@/features/users/components/Pagination'
 import { UserModal } from '@/features/users/components/UserModal'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { Link } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import * as XLSX from 'xlsx'
+import { FiCheckCircle, FiAlertCircle, FiDownload, FiUpload } from 'react-icons/fi'
 
 function classNames(...classes: any[]) {
     return classes.filter(Boolean).join(' ')
@@ -26,13 +29,100 @@ export default function AdminUsers() {
         setCurrentPage,
         itemsPerPage,
         clearFilters,
-        addUser
+        addUser,
+        importUsers,
+        editUser,
+        removeUser,
+        removeMultipleUsers
     } = useUsers();
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState(Object.keys(usersByClass)[0] || '');
 
     // State untuk mengontrol visibilitas modal
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<any>(null);
+    const [confirmConfig, setConfirmConfig] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({
+        isOpen: false, title: "", message: "", onConfirm: () => { }
+    });
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => setToast(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
+
+    const showToast = (type: 'success' | 'error', message: string) => setToast({ type, message });
+
+    const handleDownloadTemplate = () => {
+        const ws = XLSX.utils.json_to_sheet([{ name: 'Budi Santoso', nisn: '1234567890', kelas: 'XII RPL 1' }]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Template");
+        XLSX.writeFile(wb, "Template_Import_Pemilih.xlsx");
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            const bstr = evt.target?.result;
+            try {
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+                const data = XLSX.utils.sheet_to_json(ws);
+
+                const usersData = data.map((row: any) => ({
+                    name: String(row.name || row.Nama || row.NAMA || ''),
+                    nisn: String(row.nisn || row.NISN || ''),
+                    kelas: String(row.kelas || row.Kelas || row.KELAS || '')
+                })).filter(u => u.name && u.nisn && u.kelas);
+
+                if (usersData.length === 0) {
+                    showToast('error', "Format tidak valid atau data kosong! Pastikan kolom name, nisn, kelas terisi.");
+                    return;
+                }
+
+                if (usersData.length > 100) {
+                    showToast('error', "Data ditolak! Maksimal 100 data yang bisa diimpor dalam satu waktu.");
+                    return;
+                }
+
+                await importUsers(usersData);
+                showToast('success', `Berhasil mengimpor data!`);
+            } catch (error: any) {
+                showToast('error', error.message || "Gagal mengimpor data!");
+            }
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        };
+        reader.readAsBinaryString(file);
+    };
+
+    const handleEditClick = (user: any) => {
+        setEditingUser(user);
+        setIsAddOpen(true);
+    };
+
+    const handleBulkDelete = () => {
+        setConfirmConfig({
+            isOpen: true,
+            title: "Hapus Massal",
+            message: `Yakin ingin menghapus ${selectedIds.length} data terpilih? Aksi ini tidak dapat dibatalkan.`,
+            onConfirm: async () => {
+                try {
+                    await removeMultipleUsers(selectedIds);
+                    setSelectedIds([]);
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+        });
+    };
 
     // Sinkronisasi activeTab saat data pertama kali dimuat
     useEffect(() => {
@@ -50,7 +140,18 @@ export default function AdminUsers() {
     }
 
     return (
-        <div className="flex flex-col h-full overflow-x-hidden">
+        <div className="flex flex-col h-full overflow-x-hidden relative">
+            {/* Toast Notification */}
+            {toast && (
+                <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border transition-all duration-300 transform translate-y-0 animate-in fade-in slide-in-from-bottom-2 ${toast.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
+                    : 'bg-rose-50 border-rose-100 text-rose-800'
+                    }`}>
+                    {toast.type === 'success' ? <FiCheckCircle className="size-4 text-emerald-600" /> : <FiAlertCircle className="size-4 text-rose-600" />}
+                    <span className="text-xs font-black tracking-tight">{toast.message}</span>
+                </div>
+            )}
+
             {/* Title Section (Hanya ini yang Sticky) */}
             <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md pt-1 pb-4">
                 <div className="flex justify-between items-center">
@@ -61,13 +162,36 @@ export default function AdminUsers() {
                             Sistem Database Siswa Aktif
                         </p>
                     </div>
-                    <button 
-                        onClick={() => setIsAddOpen(true)}
-                        className="bg-button hover:bg-button/90 text-white px-6 py-2.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-button/20 flex items-center gap-2 active:scale-95 cursor-pointer"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                        Tambah User Baru
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            accept=".xlsx, .xls"
+                            className="hidden"
+                        />
+                        <button
+                            onClick={handleDownloadTemplate}
+                            className="bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 px-4 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                        >
+                            <FiDownload className="size-4" />
+                            Template
+                        </button>
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2 active:scale-95 cursor-pointer"
+                        >
+                            <FiUpload className="size-4" />
+                            Import
+                        </button>
+                        <button
+                            onClick={() => setIsAddOpen(true)}
+                            className="bg-button hover:bg-button/90 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-button/20 flex items-center gap-2 active:scale-95 cursor-pointer"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            Tambah
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -114,34 +238,43 @@ export default function AdminUsers() {
 
                         <div className='w-full flex items-center justify-end pb-4'>
                             {selectedIds.length > 0 ? (
-                                <Link
-                                    to="/users/cetak"
-                                    search={{
-                                        kelas: (() => {
+                                <>
+                                    <Link
+                                        to="/users/cetak"
+                                        search={{
+                                            kelas: (() => {
+                                                const allUsers = totalItemsByClass['Semua'] || [];
+                                                const selectedUsers = allUsers.filter(u => selectedIds.includes(u.id.toString()));
+                                                const classes = [...new Set(selectedUsers.map(u => u.kelas?.trim()))];
+
+                                                if (classes.length === 0) return 'Pilih Siswa';
+                                                if (classes.length === 1) return classes[0];
+
+                                                const levels = [...new Set(classes.map(c => c.split(' ')[0]))];
+                                                if (levels.length === 1) return levels[0];
+
+                                            })()
+                                        }}
+                                        onClick={() => {
                                             const allUsers = totalItemsByClass['Semua'] || [];
                                             const selectedUsers = allUsers.filter(u => selectedIds.includes(u.id.toString()));
-                                            const classes = [...new Set(selectedUsers.map(u => u.kelas?.trim()))];
-
-                                            if (classes.length === 0) return 'Pilih Siswa';
-                                            if (classes.length === 1) return classes[0];
-
-                                            const levels = [...new Set(classes.map(c => c.split(' ')[0]))];
-                                            if (levels.length === 1) return levels[0];
-
-                                        })()
-                                    }}
-                                    onClick={() => {
-                                        const allUsers = totalItemsByClass['Semua'] || [];
-                                        const selectedUsers = allUsers.filter(u => selectedIds.includes(u.id.toString()));
-                                        localStorage.setItem('cetakUsers', JSON.stringify(selectedUsers));
-                                    }}
-                                    className='flex items-center bg-button text-white px-4 py-2 rounded-lg text-sm font-bold cursor-pointer active:scale-95 transition-all shadow-sm'
-                                >
-                                    <span className='w-5 h-5 flex items-center justify-center bg-white text-text-green rounded-full text-[10px] font-black mr-2 tracking-tighter'>
-                                        {selectedIds.length}
-                                    </span>
-                                    Cetak Kartu
-                                </Link>
+                                            localStorage.setItem('cetakUsers', JSON.stringify(selectedUsers));
+                                        }}
+                                        className='flex items-center bg-button text-white px-4 py-2 rounded-lg text-sm font-bold cursor-pointer active:scale-95 transition-all shadow-sm'
+                                    >
+                                        <span className='w-5 h-5 flex items-center justify-center bg-white text-text-green rounded-full text-[10px] font-black mr-2 tracking-tighter'>
+                                            {selectedIds.length}
+                                        </span>
+                                        Cetak Kartu
+                                    </Link>
+                                    <button
+                                        onClick={handleBulkDelete}
+                                        className='ml-2 flex items-center bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg text-sm font-bold cursor-pointer active:scale-95 transition-all shadow-sm'
+                                    >
+                                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        Hapus
+                                    </button>
+                                </>
                             ) : (
                                 <div
                                     className='flex items-center bg-gray-200 text-gray-400 px-4 py-2 rounded-lg text-sm font-bold cursor-not-allowed opacity-60 shadow-sm select-none'
@@ -195,6 +328,21 @@ export default function AdminUsers() {
                                             setSelectedIds(prev => [...new Set([...prev, ...allIdsInClass])]);
                                         }
                                     }}
+                                    onEdit={handleEditClick}
+                                    onDelete={(id, name) => {
+                                        setConfirmConfig({
+                                            isOpen: true,
+                                            title: "Hapus Pemilih",
+                                            message: `Yakin ingin menghapus pemilih "${name}"? Aksi ini tidak dapat dibatalkan.`,
+                                            onConfirm: async () => {
+                                                try {
+                                                    await removeUser(id);
+                                                } catch (error) {
+                                                    console.error(error);
+                                                }
+                                            }
+                                        });
+                                    }}
                                 />
 
                                 <Pagination
@@ -209,11 +357,31 @@ export default function AdminUsers() {
                 </div>
             </Tab.Group>
 
-            {/* Modal Dialog Komponen Terpisah untuk Tambah User Baru */}
-            <UserModal 
-                isOpen={isAddOpen} 
-                onClose={() => setIsAddOpen(false)} 
-                onSubmit={addUser} 
+            {/* Modal Dialog Komponen Terpisah untuk Tambah/Edit User */}
+            <UserModal
+                isOpen={isAddOpen}
+                onClose={() => {
+                    setIsAddOpen(false);
+                    setEditingUser(null);
+                }}
+                onSubmit={async (userData) => {
+                    if (editingUser) {
+                        await editUser(editingUser.id, userData);
+                    } else {
+                        await addUser(userData);
+                    }
+                }}
+                initialData={editingUser}
+            />
+
+            {/* Custom Confirm Modal */}
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmConfig.onConfirm}
+                isDestructive={true}
             />
         </div>
     );

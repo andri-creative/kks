@@ -1,4 +1,4 @@
-import { User } from '../models';
+import { User, SchoolSettings } from '../models';
 import { generateToken } from '../helpers/jwt.helper';
 
 export class AuthService {
@@ -20,6 +20,16 @@ export class AuthService {
 
         // Enforce voting status checks for Siswa role
         if (user.roles === 'Siswa') {
+            const settings: any = await SchoolSettings.findOne();
+            if (settings) {
+                if (settings.election_status === 'not_started') {
+                    throw new Error('Akses ditolak! Waktu pemilihan belum dimulai. Silakan tunggu instruksi panitia.');
+                }
+                if (settings.election_status === 'closed') {
+                    throw new Error('Akses ditolak! Waktu pemilihan telah berakhir (ditutup).');
+                }
+            }
+
             if (user.voting_status === 'sudah_memilih') {
                 throw new Error('Akses ditolak! Anda sudah menyalurkan hak pilih Anda.');
             }

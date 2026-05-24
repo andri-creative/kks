@@ -3,6 +3,7 @@ import { authService } from '@/services/authService';
 import type { User } from '@/types/Users';
 import { fetchAdmins, createAdmin, updateAdminApi, deleteUser } from '@/features/users/api/userApi';
 import { AdminModal } from '@/features/users/components/AdminModal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import {
     FiUserPlus,
     FiEdit,
@@ -29,6 +30,9 @@ export default function Profile() {
     // UI Feedback State
     const [showPinMap, setShowPinMap] = useState<Record<string, boolean>>({});
     const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+    const [confirmConfig, setConfirmConfig] = useState<{isOpen: boolean, title: string, message: string, onConfirm: () => void}>({
+        isOpen: false, title: "", message: "", onConfirm: () => {}
+    });
 
     // Fetch admins from backend API
     const loadAdminsFromApi = async () => {
@@ -83,19 +87,24 @@ export default function Profile() {
             return;
         }
 
-        if (window.confirm(`Apakah Anda yakin ingin menghapus admin "${adminToDelete.name}"?`)) {
-            setLoading(true);
-            try {
-                if (adminToDelete.id) {
-                    await deleteUser(adminToDelete.id);
-                    await loadAdminsFromApi();
-                    showToast('success', 'Admin berhasil dihapus!');
+        setConfirmConfig({
+            isOpen: true,
+            title: "Hapus Admin",
+            message: `Apakah Anda yakin ingin menghapus admin "${adminToDelete.name}"? Aksi ini tidak dapat dibatalkan.`,
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    if (adminToDelete.id) {
+                        await deleteUser(adminToDelete.id);
+                        await loadAdminsFromApi();
+                        showToast('success', 'Admin berhasil dihapus!');
+                    }
+                } catch (err: any) {
+                    showToast('error', err.message || 'Gagal menghapus admin.');
+                    setLoading(false);
                 }
-            } catch (err: any) {
-                showToast('error', err.message || 'Gagal menghapus admin.');
-                setLoading(false);
             }
-        }
+        });
     };
 
     const handleSave = async (adminData: { name: string; username: string; code: string }) => {
@@ -288,13 +297,22 @@ export default function Profile() {
                 </div>
             </div>
 
-            {/* Modal Dialog Form */}
             <AdminModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSubmit={handleSave}
                 editingAdmin={editingAdmin}
                 currentUser={currentUser}
+            />
+
+            {/* Custom Confirm Modal */}
+            <ConfirmModal 
+                isOpen={confirmConfig.isOpen}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmConfig.onConfirm}
+                isDestructive={true}
             />
         </div>
     );

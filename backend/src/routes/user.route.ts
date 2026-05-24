@@ -18,6 +18,9 @@ router.get('/:id', UserController.getById);
 // 3. Tambah pemilih baru: POST /api/users
 router.post('/', validateRequest(createUserSchema), UserController.create);
 
+// 3b. Tambah pemilih massal: POST /api/users/batch
+router.post('/batch', UserController.batchCreate);
+
 // 4. Update data pemilih: PUT /api/users/:id
 router.put('/:id', validateRequest(updateUserSchema), UserController.update);
 

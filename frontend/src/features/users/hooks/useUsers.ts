@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { fetchUsers, createUser, deleteUser } from '../api/userApi';
+import { fetchUsers, createUser, updateUser, deleteUser, batchCreateUser } from '../api/userApi';
 
 export const useUsers = () => {
     const [users, setUsers] = useState<any[]>([]);
@@ -9,7 +9,7 @@ export const useUsers = () => {
     const [sortBy, setSortBy] = useState("name");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10; // Jumlah data per halaman
+    const itemsPerPage = 10;
 
     const loadUsers = useCallback(async () => {
         setIsLoading(true);
@@ -39,10 +39,11 @@ export const useUsers = () => {
 
         if (searchQuery.length > 0) {
             const query = searchQuery.toLowerCase();
-            result = result.filter(user => 
-                user.name.toLowerCase().includes(query) || 
+            result = result.filter(user =>
+                user.name.toLowerCase().includes(query) ||
                 (user.nisn && user.nisn.toString().includes(query)) ||
-                (user.code && user.code.toString().includes(query))
+                (user.code && user.code.toString().includes(query)) ||
+                (user.kelas && user.kelas.toLowerCase().includes(query))
             );
         }
 
@@ -76,7 +77,7 @@ export const useUsers = () => {
     // Data yang sudah dipotong per halaman (Paginated)
     const paginatedUsersByClass = useMemo(() => {
         const groups: Record<string, any[]> = {};
-        
+
         Object.keys(rawUsersByClass).forEach(category => {
             const allItems = rawUsersByClass[category];
             const startIndex = (currentPage - 1) * itemsPerPage;
@@ -106,6 +107,33 @@ export const useUsers = () => {
         }
     };
 
+    const importUsers = async (usersData: { name: string; nisn: string; kelas: string }[]) => {
+        setIsLoading(true);
+        try {
+            const result = await batchCreateUser(usersData);
+            await loadUsers();
+            return result;
+        } catch (err: any) {
+            console.error('Failed to import users:', err);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const editUser = async (id: number, userData: { name: string; nisn: string; kelas: string }) => {
+        setIsLoading(true);
+        try {
+            await updateUser(id, userData);
+            await loadUsers();
+        } catch (err: any) {
+            console.error('Failed to edit user:', err);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const removeUser = async (id: number) => {
         setIsLoading(true);
         try {
@@ -119,12 +147,25 @@ export const useUsers = () => {
         }
     };
 
-    return { 
-        usersByClass: paginatedUsersByClass, // Ini data yang sudah dipotong
-        totalItemsByClass: rawUsersByClass, // Ini data asli untuk hitung pagination
-        isLoading, 
+    const removeMultipleUsers = async (ids: string[]) => {
+        setIsLoading(true);
+        try {
+            await Promise.all(ids.map(id => deleteUser(parseInt(id))));
+            await loadUsers();
+        } catch (err: any) {
+            console.error('Failed to remove multiple users:', err);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return {
+        usersByClass: paginatedUsersByClass,
+        totalItemsByClass: rawUsersByClass,
+        isLoading,
         error,
-        searchQuery, 
+        searchQuery,
         setSearchQuery,
         sortBy,
         setSortBy,
@@ -135,7 +176,10 @@ export const useUsers = () => {
         itemsPerPage,
         clearFilters,
         addUser,
+        importUsers,
+        editUser,
         removeUser,
+        removeMultipleUsers,
         refresh: loadUsers
     };
 };

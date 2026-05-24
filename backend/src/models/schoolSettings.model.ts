@@ -21,11 +21,12 @@ export interface SchoolSettingsAttributes {
     election_status: 'not_started' | 'ongoing' | 'closed';
     auth_method: 'nisn' | 'nisn_pin';
     timer_duration: number;
+    ui_colors?: any;
     created_at?: Date;
     updated_at?: Date;
 }
 
-export interface SchoolSettingsCreationAttributes extends Optional<SchoolSettingsAttributes, 'id' | 'created_at' | 'updated_at'> { }
+export interface SchoolSettingsCreationAttributes extends Optional<SchoolSettingsAttributes, 'id' | 'created_at' | 'updated_at' | 'ui_colors'> { }
 
 export class SchoolSettings extends Model<SchoolSettingsAttributes, SchoolSettingsCreationAttributes> implements SchoolSettingsAttributes {
     public id!: number;
@@ -47,6 +48,7 @@ export class SchoolSettings extends Model<SchoolSettingsAttributes, SchoolSettin
     public election_status!: 'not_started' | 'ongoing' | 'closed';
     public auth_method!: 'nisn' | 'nisn_pin';
     public timer_duration!: number;
+    public ui_colors?: any;
 
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
@@ -134,6 +136,10 @@ SchoolSettings.init(
             type: DataTypes.INTEGER,
             allowNull: false,
             defaultValue: 300
+        },
+        ui_colors: {
+            type: DataTypes.JSON,
+            allowNull: true
         }
     },
     {

@@ -23,6 +23,24 @@ export const createUser = async (userData: { name: string; nisn: string; kelas: 
     }
 };
 
+export const batchCreateUser = async (usersData: { name: string; nisn: string; kelas: string }[]): Promise<any> => {
+    try {
+        const response = await api.post("/v1/api/users/batch", { users: usersData });
+        return handleApiResponse<any>(response, "Gagal mengimpor pemilih massal");
+    } catch (error) {
+        return handleApiError(error, "Gagal mengimpor pemilih massal");
+    }
+};
+
+export const updateUser = async (id: number, userData: { name: string; nisn: string; kelas: string }): Promise<any> => {
+    try {
+        const response = await api.put(`/v1/api/users/${id}`, userData);
+        return handleApiResponse<any>(response, "Gagal memperbarui data pemilih");
+    } catch (error) {
+        return handleApiError(error, "Gagal memperbarui data pemilih");
+    }
+};
+
 export const deleteUser = async (id: number): Promise<boolean> => {
     try {
         const response = await api.delete(`/v1/api/users/${id}`);

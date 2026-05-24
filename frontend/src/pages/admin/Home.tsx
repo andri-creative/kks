@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { candidates, countUsers } from '../../data/User';
 import { FiTrendingUp } from 'react-icons/fi';
+import { useVoteLogs } from '../../features/vote/hooks/useVoteLogs';
 
 // Import Modular Dashboard Components from Features Folder
 import KpiStats from '../../features/dashboard/KpiStats';
@@ -19,72 +19,51 @@ interface VoteRecord {
 }
 
 export default function AdminHome() {
-    // 1. Calculate realistic counts from User.ts data
-    const activeCandidates = useMemo(() => candidates.filter(c => c.status === 'active'), []);
-    const totalVoters = useMemo(() => countUsers.filter(u => u.role === 'siswa').length, []);
+    const { logs, stats, isLoading, error } = useVoteLogs();
 
-    // Simulate turnout (consistent with Votes.tsx's 38 voted students)
-    const votedCount = 38;
-    const notVotedCount = totalVoters - votedCount;
-    const turnoutRate = totalVoters > 0 ? ((votedCount / totalVoters) * 100) : 0;
-    const remainingRate = 100 - turnoutRate;
+    // 1. Calculate realistic counts from Stats API
+    const totalVoters = stats?.summary.totalRegisteredSiswa || 0;
+    const votedCount = stats?.summary.totalVotesCast || 0;
+    const notVotedCount = stats?.summary.abstainCount || 0;
+    const turnoutRate = stats?.summary.participationPercentage || 0;
+    const remainingRate = totalVoters > 0 ? 100 - turnoutRate : 0;
+    const activeCandidatesCount = stats?.candidates.length || 0;
 
     // 2. Generate recent votes data (first 5 votes for dashboard display)
     const recentVotes = useMemo<VoteRecord[]>(() => {
-        const list: VoteRecord[] = [];
-        for (let i = 0; i < 5; i++) {
-            const student = countUsers[i];
-            if (!student || student.role === 'admin') continue;
+        if (!logs) return [];
 
-            const candidateIndex = i % activeCandidates.length;
-            const chosenCandidate = activeCandidates[candidateIndex];
-
-            // Map timestamp (consistent with Votes.tsx time range)
-            const minute = 10 + (i * 12) % 45;
-            const timestampString = `17 Mei 2026, 11:${String(minute).padStart(2, '0')}:14`;
-
-            list.push({
-                id: `BALLOT-2026-${String(1000 + i).substring(1)}`,
-                voterName: student.name,
-                voterNisn: student.nisn,
-                voterKelas: student.kelas,
-                candidateName: chosenCandidate.name,
-                candidateImage: chosenCandidate.image,
-                timestamp: timestampString
-            });
-        }
-        return list;
-    }, [activeCandidates]);
-
-    // 3. Compute vote distribution per candidate
-    const standings = useMemo(() => {
-        const counts: Record<number, number> = {};
-
-        // Initialize active candidates
-        activeCandidates.forEach(c => {
-            counts[c.id] = 0;
+        // Sort from newest to oldest
+        const sortedLogs = [...logs].sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.created_at || 0).getTime();
+            const dateB = new Date(b.createdAt || b.created_at || 0).getTime();
+            return dateB - dateA; // descending
         });
 
-        // Seed initial mock distribution of 38 votes
-        for (let i = 0; i < votedCount; i++) {
-            const candidateIndex = i % activeCandidates.length;
-            const chosenCandidate = activeCandidates[candidateIndex];
-            if (chosenCandidate) {
-                counts[chosenCandidate.id]++;
-            }
-        }
+        return sortedLogs.slice(0, 5).map(log => {
+            // Gunakan time_remaining dari database
+            const timeSec = log.time_remaining || 0;
+            const minutes = Math.floor(timeSec / 60);
+            const seconds = timeSec % 60;
 
-        return activeCandidates
-            .map(c => ({
-                id: c.id,
-                name: c.name,
-                image: c.image,
-                kelas: c.kelas,
-                votes: counts[c.id] || 0,
-                percent: votedCount > 0 ? (((counts[c.id] || 0) / votedCount) * 100).toFixed(1) : '0'
-            }))
-            .sort((a, b) => b.votes - a.votes);
-    }, [activeCandidates, votedCount]);
+            let timeDisplay = '';
+            if (minutes > 0) {
+                timeDisplay = `${minutes} Menit ${seconds} Detik`;
+            } else {
+                timeDisplay = `${seconds} Detik`;
+            }
+
+            return {
+                id: `BALLOT-${new Date().getFullYear()}-${String(log.id).padStart(4, '0')}`,
+                voterName: log.user.name,
+                voterNisn: log.user.nisn,
+                voterKelas: log.user.kelas,
+                candidateName: log.candidate.name,
+                candidateImage: log.candidate.image,
+                timestamp: timeDisplay
+            };
+        });
+    }, [logs]);
 
     // 4. ApexCharts Configurations
     const donutSeries = useMemo(() => [votedCount, notVotedCount], [votedCount, notVotedCount]);
@@ -112,17 +91,24 @@ export default function AdminHome() {
         plotOptions: {
             pie: {
                 donut: {
-                    size: '65%',
+                    size: '40%',
                     labels: {
                         show: true,
+                        name: {
+                            show: false
+                        },
+                        value: {
+                            show: true,
+                            fontSize: '22px',
+                            fontWeight: 900,
+                            color: '#10b981',
+                            offsetY: 10
+                        },
                         total: {
                             show: true,
-                            label: 'Turnout',
-                            color: '#64748b',
-                            fontSize: '12px',
-                            fontWeight: '700',
+                            label: '',
                             formatter: function () {
-                                return turnoutRate.toFixed(0) + "%";
+                                return turnoutRate.toFixed(1) + "%";
                             }
                         }
                     }
@@ -140,8 +126,8 @@ export default function AdminHome() {
 
     const barSeries = useMemo(() => [{
         name: 'Perolehan Suara',
-        data: standings.map(s => s.votes)
-    }], [standings]);
+        data: stats?.candidates.map(c => c.votesCount) || []
+    }], [stats]);
 
     const barOptions = useMemo(() => ({
         chart: {
@@ -171,7 +157,7 @@ export default function AdminHome() {
         },
         colors: ['#10b981', '#14b8a6', '#34d399', '#4ade80', '#6ee7b7', '#a7f3d0'],
         xaxis: {
-            categories: standings.map(s => s.name.split(' ')[0]),
+            categories: stats?.candidates.map(c => c.name.split(' ')[0]) || [],
             labels: {
                 style: {
                     colors: '#64748b',
@@ -198,12 +184,28 @@ export default function AdminHome() {
         tooltip: {
             y: {
                 formatter: function (val: number, opts: any) {
-                    const candidate = standings[opts.dataPointIndex];
-                    return `${val} Suara (${candidate ? candidate.percent : 0}%)`;
+                    const candidate = stats?.candidates[opts.dataPointIndex];
+                    return `${val} Suara (${candidate ? candidate.percentage : 0}%)`;
                 }
             }
         }
-    }), [standings]);
+    }), [stats]);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-full text-red-500 font-bold">
+                {error}
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full bg-slate-50/30 overflow-y-auto pb-10 pt-6 mx-auto w-full space-y-6">
@@ -220,17 +222,17 @@ export default function AdminHome() {
             </div>
 
             {/* 1. KPI Stats Cards Grid (Modular Component) */}
-            <KpiStats 
+            <KpiStats
                 totalVoters={totalVoters}
                 votedCount={votedCount}
                 notVotedCount={notVotedCount}
                 turnoutRate={turnoutRate}
                 remainingRate={remainingRate}
-                activeCandidatesCount={activeCandidates.length}
+                activeCandidatesCount={activeCandidatesCount}
             />
 
             {/* 2. Charts Section (Modular ApexCharts Component) */}
-            <AnalyticsCharts 
+            <AnalyticsCharts
                 donutSeries={donutSeries}
                 donutOptions={donutOptions}
                 barSeries={barSeries}
@@ -238,7 +240,7 @@ export default function AdminHome() {
             />
 
             {/* 3. Recent Activity Ballot Table (Modular Component) */}
-            <RecentVotesTable 
+            <RecentVotesTable
                 recentVotes={recentVotes}
             />
         </div>
